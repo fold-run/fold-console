@@ -70,7 +70,8 @@ The console talks to gateway HTTP endpoints, so the two can skew. Match them:
 
 | console | requires fold |
 | --- | --- |
-| `v1.0.0`+ | `v1.9.0`+ — `/api/federation`, `/api/auth-hint` |
+| `v2.0.0`+ | `v1.9.0`+ — `/api/federation`, `/api/auth-hint` |
+| `v1.0.x` | `v1.9.0`+ — the same endpoints. v2 is a rewrite of the page, not a change to what it asks of a gateway |
 | (pre-extraction) | `v1.2.0`–`v1.8.x` — `/console/api/state`, `/console/api/auth` |
 
 Skew is handled rather than assumed away: `src/lib/version.ts` gates each
