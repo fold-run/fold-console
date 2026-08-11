@@ -1,9 +1,16 @@
 name: ci
 
 # These assets ship inside every fold binary and execute in an operator's
-# browser next to a live Bearer token. There is no build step to catch
-# anything, so CI is the only thing standing between a typo here and a broken
-# console in a shipped release.
+# browser next to a live Bearer token. CI is what stands between a mistake here
+# and a broken console in a shipped release.
+#
+# The console is now built rather than hand-written, which moves where each
+# check has to point. The type checker and linter read `src/`. The invariants
+# that are really about *what an operator's browser receives* — no external
+# origins, no innerHTML, a bounded byte cost — are asserted against the built
+# bundle in `dist/`, because that is the artefact fold vendors. And because
+# that artefact is committed, the first thing to verify is that it actually
+# corresponds to the source next to it.
 
 on:
   push:
@@ -20,57 +27,143 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
+      # No `version:` input. package.json's "packageManager" already pins pnpm,
+      # and the action refuses to run when both are set rather than guess which
+      # one is authoritative — so the pin stays in one place, where corepack and
+      # every contributor's shell also read it.
+      - uses: pnpm/action-setup@v4
+
       - uses: actions/setup-node@v5
         with:
           node-version: 22
+          cache: pnpm
 
-      - name: syntax
-        run: node --check console/app.js
+      - run: pnpm install --frozen-lockfile
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: stable
+      - name: typecheck
+        run: pnpm typecheck
 
-      - name: dev harness builds
-        run: go vet ./dev
+      - name: lint
+        run: pnpm lint
+
+      # dist/ is build output AND is committed, because fold builds from the Go
+      # module proxy alone and runs no generators. A drift between src/ and
+      # dist/ means the next `make sync-console` in fold vendors something
+      # nobody reviewed — so rebuild and require the tree to be unchanged.
+      - name: committed bundle matches source
+        run: |
+          pnpm build
+          if ! git diff --exit-code -- dist; then
+            echo
+            echo "dist/ is stale — it is build output and must be committed."
+            echo "Run 'pnpm build' and include dist/ in your commit."
+            exit 1
+          fi
+          echo "dist/ matches src/"
+
+      # fold's scripts/sync-console.sh copies exactly this list, and its test
+      # suite asserts the embedded file set from the other side. A renamed
+      # chunk or a stray asset does not ship — it breaks the sync. Assert the
+      # set here, where the person who changed the build is still looking.
+      - name: emitted file set matches fold's manifest
+        run: |
+          expected=$(printf '%s\n' \
+            dist/app.js \
+            dist/fonts/GeistMono-400-latin.woff2 \
+            dist/fonts/GeistMono-600-latin.woff2 \
+            dist/fonts/IBMPlexSans-400-latin.woff2 \
+            dist/fonts/IBMPlexSans-600-latin.woff2 \
+            dist/fonts/OFL.txt \
+            dist/index.html \
+            dist/style.css | sort)
+          actual=$(find dist -type f | sort)
+          if [ "$expected" != "$actual" ]; then
+            echo "the built file set does not match fold's vendoring manifest:"
+            diff <(echo "$expected") <(echo "$actual") || true
+            echo
+            echo "Update fold's MANIFEST in scripts/sync-console.sh in the same"
+            echo "change, or pin the filenames back in vite.config.ts."
+            exit 1
+          fi
+          echo "file set matches"
 
       # The CSP is default-src 'self' plus, when sign-in is configured, exactly
       # the OAuth issuer's origin. Anything else the page tries to fetch fails
       # silently in a shipped binary, where it is expensive to discover. The
-      # allowlist is the footer's outbound links, which are navigations rather
-      # than fetches.
+      # allowlist is the footer's outbound links and the docs deep links, which
+      # are navigations rather than fetches.
       - name: no external URLs
         run: |
-          allow='https://fold\.run|https://docs\.fold\.run|https://github\.com/fold-run|https://status\.fold\.run'
-          if hits=$(grep -nE 'https?://' console/app.js console/style.css console/index.html \
-                    | grep -vE "$allow" | grep -vE '^\S+: *(//|\*|<!--)'); then
+          ours='https://fold\.run|https://docs\.fold\.run|https://github\.com/fold-run|https://status\.fold\.run'
+
+          # Source first, strictly: a CDN font or a analytics snippet is
+          # something a person writes here, and this is where the message is
+          # actionable.
+          if hits=$(grep -rnoE 'https?://[a-zA-Z0-9._/-]*' src index.html | grep -vE "$ours"); then
             echo "external URLs are not permitted by the console's CSP:"
             echo "$hits"
             exit 1
           fi
+
+          # Then the bundle, which also carries whatever the dependencies
+          # embed. Two classes of string are legitimate there and are not
+          # network destinations:
+          #   - XML namespace identifiers (createElementNS), which are names
+          #     that happen to be spelled as URLs and are never dereferenced;
+          #   - TanStack Router's "http://localhost" fallback base, used to
+          #     parse relative URLs when window.origin is opaque.
+          # Anything else in a dependency IS a fetch this CSP would block, and
+          # is worth failing over.
+          inert='http://www\.w3\.org/|"http://localhost"'
+          if hits=$(grep -noE 'https?://[a-zA-Z0-9._/-]*' dist/app.js dist/style.css dist/index.html \
+                    | grep -vE "$ours" | grep -vE 'w3\.org|localhost'); then
+            echo "a dependency embeds an external URL the CSP will block:"
+            echo "$hits"
+            echo "(known-inert patterns: $inert)"
+            exit 1
+          fi
           echo "no unexpected external URLs"
+
+      # The shipped CSP grants no 'unsafe-inline' for scripts, so an inline
+      # <script> in index.html is dead code in every binary. Vite emits one by
+      # default (the module-preload polyfill); build.modulePreload.polyfill is
+      # off for exactly this reason, and this is the check that notices if it
+      # comes back.
+      - name: no inline scripts
+        run: |
+          if grep -o '<script[^>]*>' dist/index.html | grep -v 'src='; then
+            echo "inline <script> is blocked by default-src 'self'"
+            exit 1
+          fi
+          echo "no inline scripts"
+
+      # Upstream strings (tool names, descriptions, errors) come from federated
+      # servers and are untrusted. JSX escapes text children, so the risk is
+      # concentrated in the one escape hatch — checked in source, because the
+      # framework's own runtime legitimately assigns innerHTML in the bundle.
+      - name: no dangerouslySetInnerHTML
+        run: |
+          if grep -rn 'dangerouslySetInnerHTML\|\.innerHTML' src; then
+            echo "use text children — upstream-controlled strings are untrusted"
+            exit 1
+          fi
+          echo "no innerHTML in source"
 
       # The assets are embedded in every fold binary. A regression here is
       # bytes on every operator's disk, so the ceiling is deliberate rather
       # than aspirational — raise it in a commit that says why.
+      #
+      # Raised from 320 KiB when the console became a routed TypeScript SPA:
+      # Preact + TanStack Router + TanStack Query cost ~137 KiB of the ~171 KiB
+      # bundle. The four font subsets are another 127 KiB and dominate what is
+      # left. 384 KiB leaves room for a few more views without leaving room for
+      # a second framework.
       - name: asset size budget
         run: |
-          limit=$((320 * 1024))
-          size=$(find console -type f -exec cat {} + | wc -c)
+          limit=$((384 * 1024))
+          size=$(find dist -type f -exec cat {} + | wc -c)
           echo "console assets: $size bytes (limit $limit)"
           if [ "$size" -gt "$limit" ]; then
             echo "over budget — these ship inside every fold binary"
             exit 1
           fi
-
-      # Upstream strings (tool names, descriptions, errors) come from federated
-      # servers and are untrusted. The console renders with textContent
-      # throughout; innerHTML would turn a hostile upstream into script
-      # execution on the gateway's own origin, next to the operator's token.
-      - name: no innerHTML
-        run: |
-          if grep -n 'innerHTML' console/app.js; then
-            echo "use textContent — upstream-controlled strings are untrusted"
-            exit 1
-          fi
-          echo "no innerHTML"
