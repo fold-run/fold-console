@@ -11,7 +11,7 @@
 // (fold derives that from config — never a wildcard). Discovery and the token
 // exchange below are the only cross-origin requests the console makes, which
 // is why they must go to the configured issuer and nowhere else.
-import { API_BASE } from './federation'
+import { AUTH_HINT_URL } from './federation'
 import { setToken } from './session'
 
 export interface OAuthHint {
@@ -37,7 +37,7 @@ function b64url(bytes: Uint8Array): string {
 
 export async function fetchAuthHint(): Promise<AuthHint | null> {
   try {
-    const res = await fetch(`${API_BASE}/auth-hint`)
+    const res = await fetch(AUTH_HINT_URL)
     if (!res.ok) return null
     return (await res.json()) as AuthHint
   } catch {

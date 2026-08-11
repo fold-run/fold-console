@@ -124,6 +124,43 @@ jobs:
           fi
           echo "no unexpected external URLs"
 
+      # A mirror of fold's TestConsoleAssetsTargetCurrentAPI, which greps the
+      # vendored bundle for these literals to catch a console pinned to the
+      # pre-v1.9 endpoint names. Duplicated here on purpose: over there it fails
+      # during a supply-chain review, days later and in someone else's repo;
+      # here it fails in the PR that broke it.
+      #
+      # It is easy to break by accident and hard to notice, because the code
+      # stays correct — composing the path from a shared base minifies to
+      # `${e}/federation` and the grep stops matching while the console keeps
+      # working. See the comment in src/lib/federation.ts.
+      - name: bundle names the current gateway endpoints
+        run: |
+          for path in api/federation api/auth-hint; do
+            if ! grep -q "$path" dist/app.js; then
+              echo "dist/app.js never references $path."
+              echo "fold's TestConsoleAssetsTargetCurrentAPI greps for that literal —"
+              echo "it must appear whole, not assembled at runtime."
+              exit 1
+            fi
+          done
+          # Absolute would resolve to the origin root and break every
+          # path-prefixed deployment; the fetches must stay relative to
+          # /console/.
+          if grep -q 'fetch("/api/' dist/app.js; then
+            echo 'absolute fetch("/api/...") — must be "../api/..." to survive a proxy prefix'
+            exit 1
+          fi
+          # Config keys the page names in its own error text. A stale one is
+          # worse than a stale path: fold parses config with
+          # DisallowUnknownFields, so an operator who follows the hint writes a
+          # config that refuses to start.
+          if grep -q 'server.console.groups' dist/app.js; then
+            echo 'names server.console.groups, a config key that no longer exists'
+            exit 1
+          fi
+          echo "endpoints and config keys are current"
+
       # The shipped CSP grants no 'unsafe-inline' for scripts, so an inline
       # <script> in index.html is dead code in every binary. Vite emits one by
       # default (the module-preload polyfill); build.modulePreload.polyfill is
