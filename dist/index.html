@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <title>fold console</title>
+  <script type="module" crossorigin src="./app.js"></script>
+  <link rel="stylesheet" crossorigin href="./style.css">
+</head>
+<body>
+  <!-- The shell renders here. Deliberately empty: the page is served from an
+       embedded filesystem with no server-side rendering, and anything static
+       enough to ship in this file would be replaced on first paint anyway. -->
+  <div id="app"></div>
+  <noscript>
+    The fold console is a client-side application and needs JavaScript. The
+    same data is available without it from the gateway's read APIs —
+    <code>GET /api/federation</code> and <code>GET /api/auth-hint</code>.
+  </noscript>
+</body>
+</html>
