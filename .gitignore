@@ -5,3 +5,9 @@ node_modules/
 # fold vendors it from this repo at a pinned commit and builds from the Go
 # module proxy alone, which runs no generators — so the built assets have to
 # be in git or they never reach an operator. CI rebuilds and fails on a diff.
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

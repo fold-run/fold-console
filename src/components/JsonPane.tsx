@@ -23,7 +23,10 @@ interface Props {
 
 export function JsonPane({ title, text, placeholder, tall, copyLabel, actions }: Props) {
   return (
-    <section class="pane-block">
+    // Named region: a scrollable pane of output that a screen-reader user can
+    // jump to and identify is worth more here than the default anonymous
+    // <section>, and there are two of these on the test console.
+    <section class="pane-block" aria-label={title}>
       <div class="pane-head">
         <h3>{title}</h3>
         <div class="pane-actions">
