@@ -33,7 +33,10 @@ interface GroupProps {
 
 export function CardGroup({ title, children, action }: GroupProps) {
   return (
-    <section class="group">
+    // The group's heading is also its accessible name, so the overview reads
+    // as a handful of navigable regions rather than one undifferentiated run
+    // of cards.
+    <section class="group" aria-label={title}>
       <div class="group-head">
         <h2>{title}</h2>
         {action}

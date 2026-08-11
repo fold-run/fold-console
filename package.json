@@ -9,8 +9,10 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src vite.config.ts",
-    "lint:fix": "eslint --fix src vite.config.ts"
+    "lint": "eslint src tests vite.config.ts playwright.config.ts",
+    "lint:fix": "eslint --fix src vite.config.ts",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.2",
@@ -19,6 +21,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.37.0",
+    "@playwright/test": "1.62.1",
     "@preact/preset-vite": "^2.10.2",
     "@types/node": "^22.18.0",
     "eslint": "^9.37.0",

@@ -89,8 +89,13 @@ export function Shell({
               spellcheck={false}
               aria-label="Bearer token"
               placeholder={hint?.oauth ? '…or paste a Bearer token' : 'Bearer token (if auth is required)'}
-              onInput={(e) => setDraft((e.target as HTMLInputElement).value)}
-              onChange={apply}
+              // onInput only. preact/compat aliases React's onChange onto the
+              // input event, so declaring both left one handler clobbering the
+              // other: keystrokes were swallowed, `draft` never advanced past
+              // empty, and a pasted token silently authenticated nothing. The
+              // commit points are explicit below instead.
+              onInput={(e) => setDraft((e.currentTarget as HTMLInputElement).value)}
+              onBlur={apply}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') apply()
               }}

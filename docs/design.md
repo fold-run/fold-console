@@ -116,10 +116,37 @@ renders, it just renders wrong.
   proxy prefixes, which an injected absolute URL would not.
 - **Telemetry.** The CSP forbids it and so does the threat model.
 
+## The tests
+
+`tests/` drives the built bundle through `pnpm preview`, which is the server
+that replays fold's exact response headers. Three things follow from that
+choice and are worth stating, because they are what the suite is *for*:
+
+- **The CSP is exercised, not reasoned about.** One test walks the whole app
+  and asserts no `securitypolicyviolation` fired. CI's greps catch an inline
+  `<script>` in the HTML and a `style={{}}` in the source; neither would notice
+  a dependency injecting a style tag at runtime.
+- **The untrusted-string invariant is tested with actual payloads.** A
+  federated tool named `<img src=x onerror=...>`, an upstream error, a label, a
+  tool result — each asserted to render as text and to leave no element and no
+  side effect behind. That is the invariant that matters most here: these pages
+  render attacker-influenced strings on the gateway's own origin, next to a
+  live Bearer token.
+- **The gateway is mocked, deliberately and with a known cost.** It buys the
+  states a real gateway will not produce on demand — 401, 403, version skew, an
+  empty federation, an open breaker, a server answering method-not-found. It
+  does not buy contract fidelity; `tests/gateway.ts` says so at the top and
+  names what covers that instead.
+
+The suite paid for itself on the first run: it found that the Bearer-token
+field never applied its value. preact/compat aliases React's `onChange` onto
+the input event, so declaring both `onInput` and `onChange` left one handler
+clobbering the other — keystrokes were swallowed and a pasted token
+authenticated nothing. Nothing in the browser looked wrong, and every static
+check passed.
+
 ## Still open
 
-- **End-to-end tests.** The largest remaining gap. The routing work just made it
-  tractable: every view now has an address.
 - **Persisted view preferences.** Everything is in the URL instead, which is
   better for sharing and worse for "the way I always look at this".
 - **A federation topology view.** fold's data would support one — namespaces,

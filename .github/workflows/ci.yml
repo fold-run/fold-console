@@ -22,6 +22,37 @@ permissions:
   contents: read
 
 jobs:
+  # End-to-end, against the built bundle under fold's real CSP. Its own job
+  # because it needs a browser download the static checks do not, and there is
+  # no reason a typo should wait on Chromium.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      - name: install chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      # The config builds first and serves through `pnpm preview`, so this
+      # exercises the bytes fold would vendor, with the headers fold sends.
+      - name: e2e
+        run: pnpm test:e2e
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+
   check:
     runs-on: ubuntu-latest
     steps:
