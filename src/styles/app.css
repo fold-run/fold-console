@@ -96,6 +96,15 @@ h1, h2 { text-wrap: balance; }
 [hidden] { display: none !important; }
 a { color: var(--carrier); text-decoration: none; }
 a:hover { color: var(--fg); text-decoration: underline; }
+/* Links inside prose are underlined at rest, which is fold.run's rule and not
+   a stylistic choice: in a paragraph of Static text a Carrier link differs
+   only in brightness (1.4:1), so colour is doing all the signalling and WCAG
+   1.4.1 is not met. axe caught this on the test console's empty state, where
+   "Browse the catalog" sits mid-sentence.
+   Standalone links keep the clean treatment — nav, footer, card actions and
+   table cells are unambiguous from position, not from decoration. */
+main p a,
+.lede a { text-decoration: underline; text-underline-offset: 3px; }
 .muted { color: var(--muted); font-size: .85rem; }
 .visually-hidden {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
