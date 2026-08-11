@@ -45,7 +45,7 @@ function b64url(bytes) {
 
 async function loadAuthHint() {
   try {
-    const res = await fetch("api/auth");
+    const res = await fetch("../api/auth-hint");
     if (res.ok) S.authHint = await res.json();
   } catch { /* hint is optional; paste-token still works */ }
   const oauth = S.authHint && S.authHint.oauth;
@@ -177,8 +177,10 @@ async function refreshState() {
   let res;
   try {
     // Relative to this page's base (/console/), so it survives any prefix
-    // a fronting proxy adds.
-    res = await fetch("api/state", { headers: authHeaders() });
+    // a fronting proxy adds. "../api/federation" resolves to /api/federation
+    // at the root, and to /fold/api/federation behind a proxy adding /fold —
+    // an absolute path would break the second case.
+    res = await fetch("../api/federation", { headers: authHeaders() });
   } catch (err) {
     banner("state fetch failed: " + err.message);
     return;
