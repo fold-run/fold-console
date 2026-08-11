@@ -18,19 +18,24 @@
    it. Every value that varies must therefore be a class, not an inline
    declaration — CI greps for the prop. */
 
-/* KNOWN BUG, inherited: the -400 and -600 subsets of each family are
-   byte-identical (verify with `md5 public/fonts/*.woff2`). Weight 600 therefore
-   renders the regular outlines, so nothing on this page is actually bold. The
-   faces are declared honestly below so that regenerating the subsets is the
-   only fix needed; do not "fix" it by collapsing the declarations.
+/* Four static subsets, one per family per weight, generated from the variable
+   sources in fonts-src/ by scripts/subset-fonts.py.
 
-   That duplication also dictates how the fonts are wired. They live in public/
-   rather than being imported as modules, and the URLs are root-absolute so Vite
-   treats them as public assets and applies `base` (./) without touching the
-   names. fold's manifest pins these four filenames exactly — and an import
-   would let the bundler both rename them and, being content-addressed,
-   deduplicate two of the four out of existence, leaving fold's sync looking for
-   files that were never emitted. */
+   They were four files before too, but the -400 and -600 of each family were
+   byte-identical: both were the variable font with its wght axis intact and a
+   default of 400. A face declared `font-weight: 600` whose file carries no 600
+   instance renders the outlines it does have, so nothing here was ever
+   actually bold — and it cost twice. Instancing drops the variation tables, so
+   two real weights now cost less than half of what one duplicated variable
+   font did.
+
+   The fonts live in public/ rather than being imported as modules, and the
+   URLs are root-absolute so Vite treats them as public assets and applies
+   `base` (./) without touching the names. fold's manifest pins these four
+   filenames exactly, and a module import would let the bundler rename them —
+   or, being content-addressed, silently deduplicate any two that ever became
+   identical again, leaving fold's sync looking for files that were never
+   emitted. CI asserts all four differ. */
 @font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/IBMPlexSans-400-latin.woff2) format('woff2'); }
 @font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url(/fonts/IBMPlexSans-600-latin.woff2) format('woff2'); }
 @font-face { font-family: 'Geist Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/GeistMono-400-latin.woff2) format('woff2'); }
