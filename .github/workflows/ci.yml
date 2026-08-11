@@ -186,18 +186,37 @@ jobs:
           fi
           echo "no innerHTML in source"
 
+      # Each font file must be a distinct face. The console shipped for months
+      # with the -400 and -600 of each family byte-identical — the variable
+      # font twice, declared as two static weights — so nothing was ever bold
+      # and the payload was doubled. Nothing catches that by eye: the page
+      # renders, it just renders wrong.
+      - name: font weights are distinct
+        run: |
+          dupes=$(md5sum dist/fonts/*.woff2 | awk '{print $1}' | sort | uniq -d)
+          if [ -n "$dupes" ]; then
+            echo "identical font files shipped under different weights:"
+            md5sum dist/fonts/*.woff2
+            echo
+            echo "Regenerate with scripts/subset-fonts.py — a face whose file"
+            echo "carries no instance at its declared weight is never applied."
+            exit 1
+          fi
+          echo "all $(ls dist/fonts/*.woff2 | wc -l | tr -d ' ') font files differ"
+
       # The assets are embedded in every fold binary. A regression here is
       # bytes on every operator's disk, so the ceiling is deliberate rather
       # than aspirational — raise it in a commit that says why.
       #
-      # Raised from 320 KiB when the console became a routed TypeScript SPA:
-      # Preact + TanStack Router + TanStack Query cost ~137 KiB of the ~171 KiB
-      # bundle. The four font subsets are another 127 KiB and dominate what is
-      # left. 384 KiB leaves room for a few more views without leaving room for
-      # a second framework.
+      # Still 320 KiB, the number this repo has always used. Becoming a routed
+      # TypeScript SPA briefly pushed it to 384; fixing the duplicated font
+      # subsets gave back 71 KiB, more than the framework had taken, so the
+      # raise was retired rather than kept as slack. Current total is ~236 KiB:
+      # ~167 KiB of bundle against ~54 KiB of fonts, where fonts used to be the
+      # larger half.
       - name: asset size budget
         run: |
-          limit=$((384 * 1024))
+          limit=$((320 * 1024))
           size=$(find dist -type f -exec cat {} + | wc -c)
           echo "console assets: $size bytes (limit $limit)"
           if [ "$size" -gt "$limit" ]; then

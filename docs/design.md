@@ -78,6 +78,27 @@ curl the API to see one the page has not learned to render.
 - **Version-aware docs links.** The docs an operator opens from a running
   gateway should be the docs for *that* gateway.
 
+## The fonts were shipping twice
+
+Worth recording, because nothing about it was visible and the fix inverted the
+expected trade. The four woff2 files had the `-400` and `-600` of each family
+byte-identical: both were the *variable* font, wght axis intact, defaulting to
+400, declared in CSS as two static faces. A face declared `font-weight: 600`
+whose file carries no 600 instance renders the outlines it has, so nothing on
+the page was ever bold — and the payload was doubled to achieve that.
+
+The obvious fix — ship each variable font once and declare a weight range — is
+wrong twice over. It is *larger* (63 KB against 55 KB, because variation deltas
+cost more than a second instanced outline set when only two weights are used),
+and it changes the shipped file set, which fold pins and asserts. Instancing to
+four static subsets keeps fold's manifest untouched and gives back 71 KiB —
+more than the entire framework had cost, which is why the byte budget went back
+to the number it had before the rewrite.
+
+`scripts/subset-fonts.py` regenerates them from `fonts-src/`. CI asserts no two
+shipped font files are identical, since nothing catches that by eye: the page
+renders, it just renders wrong.
+
 ## Deliberately not done
 
 - **A component library or design system.** fold's tokens already live in
@@ -104,6 +125,3 @@ curl the API to see one the page has not learned to render.
 - **A federation topology view.** fold's data would support one — namespaces,
   endpoints, breaker state — and it is the one view that would say something a
   table cannot.
-- **Real 600-weight font subsets.** `*-400` and `*-600` are currently
-  byte-identical, so bold text is not actually bold. See the note in
-  `src/styles/app.css`.
