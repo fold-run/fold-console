@@ -8,6 +8,7 @@
 // without a way to see the full value.
 import type { ComponentChildren } from 'preact'
 import type { Tone } from './Card'
+import { SkeletonRows } from './Skeleton'
 
 export interface Column<T> {
   key: string
@@ -20,6 +21,8 @@ export interface Column<T> {
   sortable?: boolean
   /** Long free text (errors, URLs) wraps rather than widening the table. */
   wrap?: boolean
+  /** Keep the header for assistive tech, hide it visually (action columns). */
+  headerHidden?: boolean
 }
 
 export type SortDir = 'asc' | 'desc'
@@ -32,9 +35,10 @@ interface Props<T> {
   sort?: string
   dir?: SortDir
   onSort?: (key: string) => void
-  onRowClick?: (row: T) => void
   empty: ComponentChildren
   caption?: string
+  /** Render placeholder rows instead of `empty` while the first read is in flight. */
+  loading?: boolean
 }
 
 export function sortRows<T>(rows: T[], columns: Array<Column<T>>, sort?: string, dir: SortDir = 'asc'): T[] {
@@ -58,9 +62,9 @@ export function DataTable<T>({
   sort,
   dir = 'asc',
   onSort,
-  onRowClick,
   empty,
   caption,
+  loading,
 }: Props<T>) {
   return (
     <div class="tablewrap">
@@ -76,7 +80,9 @@ export function DataTable<T>({
                   key={col.key}
                   aria-sort={active ? (dir === 'asc' ? 'ascending' : 'descending') : undefined}
                 >
-                  {sortable ? (
+                  {col.headerHidden ? (
+                    <span class="visually-hidden">{col.header}</span>
+                  ) : sortable ? (
                     <button type="button" class="th-sort" onClick={() => onSort(col.key)}>
                       {col.header}
                       <span class="sort-mark" aria-hidden="true">
@@ -92,7 +98,9 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody>
-          {rows.length === 0 ? (
+          {loading ? (
+            <SkeletonRows columns={columns.length} />
+          ) : rows.length === 0 ? (
             <tr>
               <td class="empty-cell" colSpan={columns.length}>
                 {empty}
@@ -100,14 +108,10 @@ export function DataTable<T>({
             </tr>
           ) : (
             rows.map((row) => (
-              <tr
-                key={rowKey(row)}
-                class={onRowClick ? 'clickable' : undefined}
-                // Keyboard reach comes from the link inside the first cell,
-                // not from the row: a tabbable <tr> would put every row in the
-                // tab order twice.
-                onClick={onRowClick ? () => onRowClick(row) : undefined}
-              >
+              // Not clickable as a row: keyboard reach comes from the link in
+              // the first cell, and a tabbable <tr> would put every row in the
+              // tab order twice.
+              <tr key={rowKey(row)}>
                 {columns.map((col) => (
                   <td
                     key={col.key}

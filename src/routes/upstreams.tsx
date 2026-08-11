@@ -12,9 +12,9 @@ import { useMemo } from 'react'
 import { PageHeader } from '@/components/PageHeader'
 import { DataTable, sortRows, type Column, type SortDir } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
+import { DocsLink } from '@/components/DocsLink'
 import { rootRoute, useFederation } from './root'
 import type { UpstreamHealth } from '@/lib/federation'
-import { docsLink } from '@/lib/docs'
 import { latency, matches, orEmpty, ownerLine } from '@/lib/format'
 
 interface Search {
@@ -147,14 +147,8 @@ function Upstreams() {
     <>
       <PageHeader
         title="Upstreams"
-        lede={
-          <>
-            Every MCP server this gateway federates, as the gateway last saw it.{' '}
-            <a href={docsLink('federation', state?.version)} rel="noopener">
-              Federation docs
-            </a>
-          </>
-        }
+        lede="Every MCP server this gateway federates, as the gateway last saw it."
+        actions={<DocsLink topic="federation" version={state?.version}>Federation docs</DocsLink>}
       >
         <div class="filters">
           <input
@@ -189,9 +183,11 @@ function Upstreams() {
             <option value="connected">Connected</option>
             <option value="disconnected">Disconnected</option>
           </select>
-          <span class="muted count">
+          {/* Announced, because filtering changes the result count without
+              moving focus and a keyboard user gets no other signal. */}
+          <output class="muted count" aria-live="polite">
             {filtered.length} of {all.length}
-          </span>
+          </output>
         </div>
       </PageHeader>
 
@@ -203,10 +199,9 @@ function Upstreams() {
         sort={search.sort}
         dir={search.dir ?? 'asc'}
         onSort={onSort}
+        loading={isPending}
         empty={
-          isPending ? (
-            'Reading the federation snapshot…'
-          ) : filtering ? (
+          filtering ? (
             <EmptyState
               title="No upstream matches this filter"
               hint={

@@ -18,7 +18,7 @@ import { EmptyState } from '@/components/EmptyState'
 import { JsonPane } from '@/components/JsonPane'
 import { rootRoute, useFederation } from './root'
 import type { EndpointStatus } from '@/lib/federation'
-import { latency, orEmpty, ownerLine, pretty } from '@/lib/format'
+import { EMPTY, latency, orEmpty, ownerLine, pretty } from '@/lib/format'
 
 const endpointColumns: Array<Column<EndpointStatus>> = [
   {
@@ -86,7 +86,7 @@ function UpstreamDetail() {
           value={orEmpty(upstream.breaker)}
           tone={upstream.breaker === 'closed' ? 'ok' : upstream.breaker === 'open' ? 'bad' : 'warn'}
         />
-        <Card label="latency" value={upstream.connected ? latency(upstream.latencyMs) : '—'} />
+        <Card label="latency" value={upstream.connected ? latency(upstream.latencyMs) : EMPTY} />
         {upstream.error ? <Card label="error" value={upstream.error} tone="bad" wrap /> : null}
       </CardGroup>
 

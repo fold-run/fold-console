@@ -127,10 +127,13 @@ jobs:
         run: |
           ours='https://fold\.run|https://docs\.fold\.run|https://github\.com/fold-run|https://status\.fold\.run'
 
-          # Source first, strictly: a CDN font or a analytics snippet is
+          # Source first, strictly: a CDN font or an analytics snippet is
           # something a person writes here, and this is where the message is
-          # actionable.
-          if hits=$(grep -rnoE 'https?://[a-zA-Z0-9._/-]*' src index.html | grep -vE "$ours"); then
+          # actionable. The one exemption is the XML namespace, which an inline
+          # SVG data: URI (the favicon) is required to declare and which is a
+          # name rather than somewhere the browser ever goes.
+          if hits=$(grep -rnoE 'https?://[a-zA-Z0-9._/-]*' src index.html \
+                    | grep -vE "$ours" | grep -vE 'www\.w3\.org/'); then
             echo "external URLs are not permitted by the console's CSP:"
             echo "$hits"
             exit 1

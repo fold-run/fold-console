@@ -121,13 +121,13 @@ export async function fetchFederation(signal?: AbortSignal): Promise<FederationS
   try {
     res = await fetch(FEDERATION_URL, { headers: authHeaders(), signal })
   } catch (err) {
-    throw new ApiError(0, `state fetch failed: ${(err as Error).message}`)
+    throw new ApiError(0, `Could not reach the gateway: ${(err as Error).message}`)
   }
 
   if (res.status === 401) {
     throw new ApiError(
       401,
-      'Unauthorized — sign in, or paste a valid Bearer token (the same token /mcp accepts).',
+      'Unauthorized. Sign in, or paste a valid Bearer token: the same one /mcp accepts.',
       true,
     )
   }
@@ -138,7 +138,7 @@ export async function fetchFederation(signal?: AbortSignal): Promise<FederationS
       true,
     )
   }
-  if (!res.ok) throw new ApiError(res.status, `state fetch failed: HTTP ${res.status}`)
+  if (!res.ok) throw new ApiError(res.status, `The gateway refused the read: HTTP ${res.status}.`)
 
   return (await res.json()) as FederationState
 }

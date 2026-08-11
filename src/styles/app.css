@@ -69,6 +69,19 @@
 
   --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
   --mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Motion is state, never decoration, so the vocabulary is deliberately
+     small: one duration for a colour change, one for something arriving, and
+     a single exponential ease. No bounce; an instrument does not overshoot. */
+  --ease: cubic-bezier(0.25, 1, 0.5, 1);   /* ease-out-quart */
+  --dur-tint: 120ms;
+  --dur-move: 180ms;
+
+  /* Named, so nobody reaches for 9999. */
+  --z-sticky: 10;
+  --z-toast: 40;
+  --z-skip: 60;
+
   color-scheme: dark;
 }
 
@@ -84,40 +97,69 @@ a:hover { color: var(--fg); text-decoration: underline; }
   clip-path: inset(50%); white-space: nowrap;
 }
 
+/* Off-screen until focused, then a real control in the corner. Keyboard users
+   should not have to walk the whole nav on every route to reach the content. */
+.skip {
+  position: fixed; top: .75rem; left: .75rem; z-index: var(--z-skip);
+  /* Opaque: the shared button box is transparent, which let the wordmark show
+     straight through the focused skip link and made both unreadable. */
+  background: var(--bg); border-color: var(--fg);
+  transform: translateY(-200%); transition: transform var(--dur-move) var(--ease);
+}
+.skip:hover { background: var(--card-hi); }
+.skip:focus-visible { transform: none; }
+main:focus-visible { outline: 2px solid var(--live); outline-offset: 4px; }
+
 /* ---------- shell ---------- */
 
 .shell { display: flex; flex-direction: column; min-height: 100vh; }
 
-header {
+/* Scoped to a class, not the bare element. As `header` this also matched every
+   page's <header class="page-head">, handing each one the top bar's 1.5rem
+   side padding: every h1 on the site sat 24px right of the content beneath it,
+   and nothing but a screenshot would have shown it. */
+.topbar {
   display: flex; justify-content: space-between; align-items: center; gap: 1rem;
   flex-wrap: wrap; padding: 1rem 1.5rem; border-bottom: 1px solid var(--line);
 }
 
-/* The wordmark is drawn, never set in a webfont, and appears alone — no
-   pictorial mark beside it. The rule + descriptor is the footer/console
-   lockup from the site's Wordmark component. */
-.brand { display: flex; align-items: center; gap: .7rem; color: inherit; }
+/* The wordmark is drawn, never set in a webfont, and appears alone: no
+   pictorial mark beside it. The lockup scales from one variable so the rule and
+   descriptor stay in proportion at any size, which is how fold.run's component
+   is built and the reason the two surfaces cannot drift apart. */
+.brand { display: flex; align-items: center; gap: .7rem; color: inherit; --wm-h: 20px; }
 .brand:hover { text-decoration: none; }
-.wordmark { display: block; height: 19px; width: auto; color: var(--fg); shape-rendering: geometricPrecision; }
-.wm-rule { width: 1px; height: 1.05em; background: var(--line); }
-.wm-desc {
-  font: 500 .72rem/1.4 var(--mono); color: var(--muted);
+.wordmark { display: inline-flex; align-items: center; gap: .7em; font-size: var(--wm-h); }
+.wordmark-glyphs {
+  display: block; height: 1em; width: auto; color: var(--fg);
+  /* Heavy stems at 20px land on fractional pixels; the default renderer snaps
+     them unevenly and the l comes out lighter than the d. */
+  shape-rendering: geometricPrecision;
+}
+.wordmark-rule { width: 1px; height: 1.05em; background: var(--line); }
+.wordmark-descriptor {
+  font: 500 .62em/1.4 var(--mono); color: var(--muted);
   text-transform: uppercase; letter-spacing: .08em; white-space: nowrap;
 }
 .version { font-family: var(--mono); font-size: .8rem; }
 .auth { display: flex; gap: .5rem; flex-wrap: wrap; }
 
+/* align-content: start is load-bearing. .body is a flex child with flex: 1, so
+   on a short page it grows — and a grid with default align-content hands that
+   slack to its rows. Once the sidebar stacks above main at narrow widths, the
+   sidebar's row absorbed ~140px and opened a hole between the nav and the
+   page title. Slack belongs at the bottom. */
 .body {
   flex: 1; width: 100%; max-width: var(--page); margin: 0 auto;
   display: grid; grid-template-columns: 12rem minmax(0, 1fr); gap: 2rem;
-  padding: 1.5rem;
+  align-content: start; padding: 1.5rem;
 }
 main { min-width: 0; display: grid; gap: 1.75rem; align-content: start; }
 
 /* Navigation is a list of routes, and the active one is marked on the
    neutral ramp — Live is reserved for proof, and "you are here" is not a
    proof signal. */
-.sidebar { align-self: start; position: sticky; top: 1.5rem; }
+.sidebar { align-self: start; position: sticky; top: 1.5rem; z-index: var(--z-sticky); }
 .sidebar ul { list-style: none; margin: 0; padding: 0; display: grid; gap: .15rem; }
 .nav-link {
   display: block; padding: .4rem .6rem; border-radius: var(--radius);
@@ -144,15 +186,21 @@ footer { border-top: 1px solid var(--line); margin-top: auto; }
   display: inline-flex; align-items: center; gap: .6rem; margin: 0;
   color: var(--muted); font-size: .8rem;
 }
-.foot .wordmark { height: 14px; color: var(--muted); }
+.foot .legal { --wm-h: 15px; }
+.foot .wordmark-glyphs { color: var(--muted); }
 
 /* ---------- page furniture ---------- */
 
-.page-head { display: grid; gap: .5rem; }
-.page-head-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
-.page-head h1 { font-size: 1.3rem; font-weight: 600; margin: 0; }
+.page-head {
+  display: grid; gap: .5rem;
+  padding-bottom: 1rem; border-bottom: 1px solid var(--line);
+}
+.page-head-row { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.page-head h1 { font-size: 1.35rem; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
 .page-actions { display: flex; gap: .5rem; align-items: center; }
-.lede { margin: 0; max-width: 62ch; }
+/* 62ch of a 15px sans is wider than these ledes ever are; the cap exists so a
+   long one never runs the full width of a 1400px table. */
+.lede { margin: 0; max-width: 62ch; text-wrap: pretty; }
 .back { font-size: .85rem; font-family: var(--mono); }
 
 h2 { font-size: 1.05rem; font-weight: 600; margin: 0; }
@@ -166,27 +214,39 @@ h3 {
 .group-action { font: 400 .78rem/1.4 var(--mono); color: var(--muted); white-space: nowrap; }
 .group-action:hover { color: var(--fg); }
 
+/* A condition arriving mid-session should be seen to arrive; one that was
+   already true on load should just be there. Both are covered by a short
+   settle from above, which is unobtrusive enough not to matter on first paint. */
 .banner {
   background: var(--card); border: 1px solid var(--down); color: var(--down);
   padding: .5rem .75rem; border-radius: var(--radius); margin: 0;
+  animation: settle var(--dur-move) var(--ease) both;
 }
+@keyframes settle { from { opacity: 0; transform: translateY(-6px); } }
 /* A warning is not a failure. Skew and passthrough read on the neutral ramp;
    only a denial or an outage earns Down. */
 .banner.warn { border-color: var(--line-hi); color: var(--carrier); }
 
-.empty { padding: 1.25rem; display: grid; gap: .25rem; justify-items: start; }
+/* No horizontal padding: as a page-level block this sits directly under the
+   page header's rule, and 20px of inset read as a misalignment. Inside a table
+   the cell's own padding supplies the inset. */
+.empty { padding: 1.25rem 0; display: grid; gap: .3rem; justify-items: start; max-width: 62ch; }
+.empty-cell .empty { padding: .5rem 0; }
 .empty-title { margin: 0; font-weight: 600; }
 .empty p { margin: 0; }
 .empty-cell { text-align: left; white-space: normal; }
 
 /* ---------- cards ---------- */
 
+/* auto-fill rather than a fixed four. A group of five cards against four
+   columns leaves one orphan on its own row, which reads as a broken grid;
+   letting the track count follow the width fits five across a laptop and two
+   across a phone with no breakpoints to maintain. */
 .cards {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(12.5rem, 1fr));
   grid-auto-rows: 1fr; gap: .5rem;
 }
-@media (max-width: 62rem) { .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 34rem) { .cards { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 30rem) { .cards { grid-template-columns: minmax(0, 1fr); } }
 .cards:empty { display: none; }
 .card {
   background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
@@ -221,24 +281,46 @@ th {
   text-transform: uppercase; letter-spacing: .08em;
 }
 td { font: 400 .8rem/1.5 var(--mono); }
-td.wrap { white-space: normal; min-width: 16rem; }
+/* No min-width. The latency column opts into wrapping so a connect error has
+   somewhere to go, but a 16rem floor applied on every row too — so a table of
+   healthy upstreams reading "1 ms" carried a 256px empty column and pushed
+   Owner off the far edge. Let it size to content and only cap the long case. */
+td.wrap { white-space: normal; max-width: 32rem; }
 
 /* A sortable header is a button so it is reachable and announced as one;
    it inherits the header's type rather than looking like a control. */
+/* The visible control is a line of 11px text; the target is the whole header
+   cell. An overlay sized to the cell's padding does that without changing the
+   layout or nesting a block inside the label. */
 .th-sort {
   background: none; border: none; padding: 0; height: auto; font: inherit;
   color: inherit; text-transform: inherit; letter-spacing: inherit;
   cursor: pointer; display: inline-flex; gap: .3rem; align-items: center;
+  position: relative;
 }
+.th-sort::after { content: ''; position: absolute; inset: -.5rem -.75rem; }
 .th-sort:hover { color: var(--fg); background: none; }
+th:has(.th-sort:hover) { background: var(--card-hi); }
 .sort-mark { width: .6em; color: var(--fg); }
 .cell-link { color: var(--fg); }
 tbody tr:hover td { background: var(--card-hi); }
 
 /* Status semantics. Live marks a thing proven up; Down marks a failure. A
-   half-open breaker is neither — it is not proof, so it must not carry Live,
-   and the system has no third hue to give it. It reads on the neutral ramp. */
-.ok { color: var(--live); } .bad { color: var(--down); } .warn { color: var(--carrier); }
+   half-open breaker, auth switched off, no audit sink: none of those is proof
+   and none is failure, so none may carry Live or Down, and the system has no
+   third hue to give them.
+   The neutral ramp alone was not enough — Carrier against Signal is invisible
+   at a glance, so "auth disabled" read exactly like "state in-process" and the
+   tone carried no information at all. A dotted rule is texture rather than
+   hue: it marks the value as wanting attention without inventing a colour. */
+.ok { color: var(--live); }
+.bad { color: var(--down); }
+.warn {
+  color: var(--carrier);
+  text-decoration: underline dotted var(--line-hi);
+  text-underline-offset: 4px;
+  text-decoration-thickness: 1px;
+}
 
 /* ---------- controls ---------- */
 
@@ -273,18 +355,27 @@ button {
   font-weight: 500; padding: 0 1rem;
   transition: background-color 120ms ease-out, border-color 120ms ease-out, color 120ms ease-out;
 }
-button:hover:not(:disabled) { background: var(--card-hi); }
+button:hover:not(:disabled) { background: var(--card-hi); border-color: var(--fg); }
+/* Pressed reads as a step down the ramp, not a transform. A control that moves
+   under the cursor is a toy; this one just gets darker. */
+button:active:not(:disabled) { background: var(--card); border-color: var(--line-hi); }
 button.primary {
   background: var(--action); color: var(--action-ink); border-color: transparent;
   font-weight: 600;
 }
-button.primary:hover:not(:disabled) { background: var(--action-hover); }
+button.primary:hover:not(:disabled) { background: var(--action-hover); border-color: transparent; }
+button.primary:active:not(:disabled) { background: var(--muted); }
 button:disabled { opacity: .45; cursor: default; }
+/* 25px tall by design — it sits inside a table cell and a card value, and a
+   34px control there would set the row height. The pointer target is grown
+   past the box instead, which is the whole reason the console can stay dense. */
 .copy {
   height: 1.55rem; padding: 0 .5rem; font: 400 .7rem/1 var(--mono);
-  color: var(--muted); border-color: var(--line);
+  color: var(--muted); border-color: var(--line); position: relative;
 }
+.copy::after { content: ''; position: absolute; inset: -12px -8px; }
 .copy:hover:not(:disabled) { color: var(--fg); border-color: var(--line-hi); }
+.copy:active:not(:disabled) { background: var(--card-hi); }
 /* A button that reads as a link: used where the action is navigational in
    spirit ("clear the filter") but must not be a real href. */
 .linkish {
@@ -309,7 +400,14 @@ button:disabled { opacity: .45; cursor: default; }
 .seg button:hover:not(:disabled):not(.active) { background: var(--card); color: var(--fg); }
 .seg-count { font: 400 .7rem/1 var(--mono); color: var(--muted); }
 
-@media (prefers-reduced-motion: reduce) { button, input, select, textarea { transition: none; } }
+/* Motion here only ever conveys state, so removing it costs nothing: the dot
+   still changes colour, the toast still appears, the skeleton still holds the
+   space. Nothing is gated behind an animation. */
+@media (prefers-reduced-motion: reduce) {
+  button, input, select, textarea, .skip { transition: none; }
+  .toast, .banner, .skeleton, .freshness .dot { animation: none; }
+  .skeleton { opacity: .6; }
+}
 ::placeholder { color: var(--muted); opacity: 1; }
 
 /* Focus is a proof signal: this element is the one taking input. */
@@ -327,15 +425,51 @@ button:disabled { opacity: .45; cursor: default; }
 }
 .pane.tall { max-height: 26rem; }
 
+/* ---------- freshness ---------- */
+
+/* A square marker, not a dot: one radius, every surface, and a machined
+   2px square is more this system's voice than a circle would be. Lit means
+   the reading on screen is proven current — the same claim Live makes
+   everywhere else, which is why it is allowed here. */
+.freshness {
+  display: inline-flex; align-items: center; gap: .45rem; margin: 0;
+  font: 400 .72rem/1 var(--mono); color: var(--muted); white-space: nowrap;
+  padding-right: .35rem;
+}
+.freshness .dot {
+  width: 7px; height: 7px; border-radius: var(--radius);
+  background: var(--line-hi); flex: none;
+}
+.freshness[data-state='live'] .dot { background: var(--live); }
+.freshness[data-state='fetching'] .dot { background: var(--live); animation: pulse 1.1s var(--ease) infinite; }
+.freshness[data-state='failed'] .dot { background: var(--down); }
+.freshness[data-state='failed'] { color: var(--down); }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .25; } }
+
+/* ---------- skeletons ---------- */
+
+/* Shaped like the answer, so nothing jumps when it arrives. */
+.skeleton {
+  display: block; background: var(--card-hi); border-radius: var(--radius);
+  animation: breathe 1.4s var(--ease) infinite;
+}
+.skeleton-card { justify-content: center; }
+.skeleton-label { width: 45%; height: .55rem; }
+.skeleton-value { width: 72%; height: .8rem; }
+.skeleton-cell { width: 70%; height: .8rem; }
+@keyframes breathe { 0%, 100% { opacity: .45; } 50% { opacity: .9; } }
+
 /* ---------- toasts ---------- */
 
 .toasts {
-  position: fixed; right: 1rem; bottom: 1rem; z-index: 10;
+  position: fixed; right: 1rem; bottom: 1rem; z-index: var(--z-toast);
   display: grid; gap: .4rem; justify-items: end; pointer-events: none;
 }
 .toast {
   background: var(--card); border: 1px solid var(--line-hi); border-radius: var(--radius);
   padding: .45rem .75rem; font: 400 .8rem/1.4 var(--mono); color: var(--fg);
   max-width: 24rem;
+  animation: rise var(--dur-move) var(--ease) both;
 }
+@keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 .toast.bad { border-color: var(--down); color: var(--down); }

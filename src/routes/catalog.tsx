@@ -96,7 +96,10 @@ function Catalog() {
       },
       {
         key: 'copy',
-        header: '',
+        // A blank <th> is announced as an unnamed column; the label is present
+        // and hidden rather than absent.
+        header: 'Copy',
+        headerHidden: true,
         value: () => '',
         sortable: false,
         render: (item) => (
@@ -124,9 +127,17 @@ function Catalog() {
     <>
       <PageHeader
         title="Catalog"
-        lede="Tools, prompts and resources visible to this principal — the same list any MCP client would receive."
+        lede="Tools, prompts and resources visible to this principal: the same list any MCP client would receive."
         actions={
-          <button type="button" class="primary" onClick={mcp.connect} disabled={mcp.status === 'connecting'}>
+          // Primary while connecting is the only thing to do here; once the
+          // catalog is on screen the operator's next move is reading it, not
+          // reloading, so the Action fill steps back down to the neutral box.
+          <button
+            type="button"
+            class={mcp.status === 'ready' ? undefined : 'primary'}
+            onClick={mcp.connect}
+            disabled={mcp.status === 'connecting'}
+          >
             {mcp.status === 'connecting' ? 'Connecting…' : mcp.status === 'ready' ? 'Reload catalog' : 'Connect & list'}
           </button>
         }
@@ -152,9 +163,9 @@ function Catalog() {
             onInput={(e) => setSearch({ q: (e.target as HTMLInputElement).value || undefined })}
           />
           {mcp.status === 'ready' ? (
-            <span class="muted count">
+            <output class="muted count" aria-live="polite">
               {rows.length} of {items.length}
-            </span>
+            </output>
           ) : null}
         </div>
       </PageHeader>

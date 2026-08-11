@@ -13,8 +13,9 @@ import { Card, CardGroup } from '@/components/Card'
 import { PageHeader } from '@/components/PageHeader'
 import { CopyButton } from '@/components/CopyButton'
 import { EmptyState } from '@/components/EmptyState'
+import { DocsLink } from '@/components/DocsLink'
+import { SkeletonCards } from '@/components/Skeleton'
 import { rootRoute, useFederation } from './root'
-import { docsLink } from '@/lib/docs'
 import { supports } from '@/lib/version'
 import { interval, orEmpty, timestamp } from '@/lib/format'
 
@@ -22,8 +23,18 @@ function Overview() {
   const { state, isPending } = useFederation()
 
   if (!state) {
+    // Held in the shape of the answer, so nothing jumps when it lands.
     return isPending ? (
-      <EmptyState title="Reading the federation snapshot…" />
+      <>
+        <PageHeader title="Overview" />
+        <section class="group" aria-label="Loading">
+          <p class="visually-hidden" role="status">Reading the federation snapshot.</p>
+          <SkeletonCards count={5} />
+        </section>
+        <section class="group" aria-hidden="true">
+          <SkeletonCards count={3} />
+        </section>
+      </>
     ) : (
       <EmptyState
         title="No federation snapshot"
@@ -34,20 +45,13 @@ function Overview() {
 
   const upstreamsHealthy = state.upstreams.filter((u) => u.connected).length
   const total = state.upstreams.length
-  const docs = (topic: Parameters<typeof docsLink>[0]) => docsLink(topic, state.version)
 
   return (
     <>
       <PageHeader
         title="Overview"
-        lede={
-          <>
-            The gateway's own view of its configuration and federation.{' '}
-            <a href={docs('configuration')} rel="noopener">
-              Configuration reference
-            </a>
-          </>
-        }
+        lede="The gateway's own view of its configuration and federation."
+        actions={<DocsLink topic="configuration" version={state.version}>Configuration</DocsLink>}
       />
 
       <CardGroup title="Gateway">
@@ -77,7 +81,7 @@ function Overview() {
         title="Federation"
         action={
           <Link to="/upstreams" className="group-action">
-            View all {total} →
+            All upstreams →
           </Link>
         }
       >
@@ -99,9 +103,7 @@ function Overview() {
       <CardGroup
         title="Governance"
         action={
-          <a href={docs('policy')} class="group-action" rel="noopener">
-            Policy docs →
-          </a>
+          <DocsLink topic="policy" version={state.version}>Policy docs</DocsLink>
         }
       >
         <Card
@@ -146,9 +148,7 @@ function Overview() {
       <CardGroup
         title="Observability"
         action={
-          <a href={docs('observability')} class="group-action" rel="noopener">
-            Observability docs →
-          </a>
+          <DocsLink topic="observability" version={state.version}>Observability docs</DocsLink>
         }
       >
         <Card
@@ -163,9 +163,7 @@ function Overview() {
         <CardGroup
           title="Discovery"
           action={
-            <a href={docs('discovery')} class="group-action" rel="noopener">
-              Discovery docs →
-            </a>
+            <DocsLink topic="discovery" version={state.version}>Discovery docs</DocsLink>
           }
         >
           <Card label="source" value={state.discovery.url} wrap />

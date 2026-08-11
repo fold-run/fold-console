@@ -109,9 +109,16 @@ function TestConsole() {
     <>
       <PageHeader
         title="Test console"
-        lede="Calls go through the gateway's own MCP endpoint — policy, rate limits, and audit apply exactly as they do for any other client."
+        lede="Calls go through the gateway's own MCP endpoint, so policy, rate limits and audit apply exactly as they do for any other client."
         actions={
-          <button type="button" onClick={mcp.connect} disabled={mcp.status === 'connecting'}>
+          // Same rule as the catalog: one Action fill on the page, and it
+          // belongs to whichever step is actually next.
+          <button
+            type="button"
+            class={mcp.status === 'ready' ? undefined : 'primary'}
+            onClick={mcp.connect}
+            disabled={mcp.status === 'connecting'}
+          >
             {mcp.status === 'connecting' ? 'Connecting…' : mcp.status === 'ready' ? 'Reconnect' : 'Connect & list'}
           </button>
         }
@@ -119,13 +126,27 @@ function TestConsole() {
 
       {mcp.status === 'error' ? <p class="banner bad" role="alert">{mcp.error}</p> : null}
 
-      {mcp.status === 'idle' ? (
+      {/* Idle shows the invitation and nothing else. Rendering the picker, an
+          empty argument box and two blank panes in a disabled state announces
+          "not connected" and then contradicts it with a whole form — the
+          operator has to work out which of six greyed controls to touch. There
+          is exactly one thing to do here, so show exactly that. */}
+      {notReady && mcp.status !== 'connecting' ? (
         <EmptyState
-          title="Not connected"
-          hint="Connect to open an MCP session, or browse what is available in the catalog first."
+          title={mcp.status === 'error' ? 'No MCP session' : 'Not connected'}
+          hint={
+            <>
+              Opening a session lists the tools, prompts and resources this
+              principal can reach.{' '}
+              <Link to="/catalog">Browse the catalog</Link> to see them as a
+              searchable list.
+            </>
+          }
         />
       ) : null}
 
+      {notReady ? null : (
+      <>
       <div class="filters">
         <Segmented
           label="What to invoke"
@@ -179,7 +200,7 @@ function TestConsole() {
           placeholder={
             spec.args
               ? '{"argument": "value"}'
-              : 'resources/read takes no arguments — the URI is the identity'
+              : 'resources/read takes no arguments. The URI is the identity.'
           }
           onInput={(e) => setArgs((e.target as HTMLTextAreaElement).value)}
         />
@@ -202,7 +223,7 @@ function TestConsole() {
         title="Result"
         copyLabel="Result"
         text={result}
-        placeholder="Nothing yet — connect and call a tool."
+        placeholder="Nothing yet. Call something and the result lands here."
       />
 
       <JsonPane
@@ -211,12 +232,15 @@ function TestConsole() {
         text={wireText}
         placeholder="Every JSON-RPC message this session sends and receives appears here."
         tall
+        follow
         actions={
           <button type="button" class="copy" onClick={mcp.clearWire} disabled={mcp.wire.length === 0}>
             Clear
           </button>
         }
       />
+      </>
+      )}
     </>
   )
 }
