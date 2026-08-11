@@ -17,10 +17,23 @@
 // its own stylesheet claimed to follow that revision.
 
 /** Ink bounds of the composed word: ascender to baseline, f crossbar to d stem. */
-const BOX = { width: 3997, height: 1467 } as const
+export const WORDMARK_BOX = { width: 3997, height: 1467 } as const
 
-const PATH =
+export const WORDMARK_PATH =
   'M105 1467V670H0V405H105V248L372 0H868V265H548V1467ZM615 670 618 405H868V670ZM1104 1467 839 1202V670L1104 405H1401V670H1286V1219H1401V1467ZM1471 1467V1219H1581V670H1471V405H1767L2032 670V1202L1767 1467ZM2419 1467 2171 1219V0H2613V1202H2811V1467ZM3555 1467V0H3997V1467ZM3069 1467 2830 1228V644L3069 405H3485V670H3272V1219H3485V1362L3380 1467Z'
+
+/**
+ * Place the mark centred on (cx, cy) at a given width, in the user units of
+ * whatever drawing is asking. The topology's gateway node needs the paths
+ * inline: that node IS the product, so it carries the mark rather than the
+ * mono label the generic nodes around it get.
+ */
+export function wordmarkTransform(cx: number, cy: number, width: number): string {
+  const scale = width / WORDMARK_BOX.width
+  const x = cx - width / 2
+  const y = cy - (WORDMARK_BOX.height * scale) / 2
+  return `translate(${x.toFixed(2)} ${y.toFixed(2)}) scale(${scale.toFixed(5)})`
+}
 
 interface Props {
   /** Names the mark for assistive tech. Omit where it is decorative. */
@@ -35,7 +48,7 @@ export function Wordmark({ title, descriptor, className }: Props) {
     <span class={className ? `wordmark ${className}` : 'wordmark'}>
       <svg
         class="wordmark-glyphs"
-        viewBox={`0 0 ${BOX.width} ${BOX.height}`}
+        viewBox={`0 0 ${WORDMARK_BOX.width} ${WORDMARK_BOX.height}`}
         fill="currentColor"
         role={title ? 'img' : undefined}
         aria-label={title}
@@ -43,7 +56,7 @@ export function Wordmark({ title, descriptor, className }: Props) {
         focusable="false"
       >
         {title ? <title>{title}</title> : null}
-        <path d={PATH} />
+        <path d={WORDMARK_PATH} />
       </svg>
       {descriptor ? (
         <>
