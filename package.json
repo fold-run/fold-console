@@ -9,10 +9,11 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src tests vite.config.ts playwright.config.ts",
+    "lint": "eslint src tests vite.config.ts playwright.config.ts playwright.contract.config.ts",
     "lint:fix": "eslint --fix src vite.config.ts",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "test:contract": "playwright test --config playwright.contract.config.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.2",

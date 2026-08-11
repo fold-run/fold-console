@@ -152,8 +152,35 @@ choice and are worth stating, because they are what the suite is *for*:
 - **The gateway is mocked, deliberately and with a known cost.** It buys the
   states a real gateway will not produce on demand — 401, 403, version skew, an
   empty federation, an open breaker, a server answering method-not-found. It
-  does not buy contract fidelity; `tests/gateway.ts` says so at the top and
-  names what covers that instead.
+  cannot buy contract fidelity, which is what `tests/contract.spec.ts` is for.
+
+### The contract suite
+
+`src/lib/federation.ts` is a hand transcription of fold's `introspection.go`,
+and for a while nothing checked it. A renamed field would have left fold's
+tests green, this repo's tests green, and operators looking at blank cards —
+the exact skew `src/lib/version.ts` exists to survive, and the one path with no
+test at all.
+
+`pnpm test:contract` measures a live gateway against `src/lib/contract.ts`,
+which states the field list once. The `satisfies Record<keyof T, …>` clause
+means the list cannot drift from the interface: add, remove or rename a key on
+the type and tsc fails. What the runtime check adds is the kinds, and whether
+fold still sends what the console reads.
+
+It runs only when `FOLD_GATEWAY_URL` is set, so a laptop needs no Go. CI
+supplies it from the **published release artifact** rather than `go install`:
+goreleaser sets the version with ldflags, so a module-proxy build reports
+`dev`, and testing that would test a binary no operator on a release runs.
+
+The pin is deliberate and mirrors fold pinning this repo by commit — a pull
+request tests the release this console is built for, and a weekly run tests
+`@latest` as early warning.
+
+It earned itself immediately: every fixture in this repo modelled `version` as
+`1.9.0`, and a real gateway serves `v1.9.0`. Harmless, because
+`src/lib/version.ts` parses both, but it meant the whole suite was exercising a
+string fold does not emit.
 
 The suite paid for itself on the first run: it found that the Bearer-token
 field never applied its value. preact/compat aliases React's `onChange` onto

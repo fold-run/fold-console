@@ -1,0 +1,105 @@
+name: contract
+
+# Does this console still agree with a real gateway?
+#
+# Every other test in this repo runs against tests/gateway.ts, which is this
+# repo's own fixture and can only confirm that the console agrees with itself.
+# src/lib/federation.ts is a hand transcription of fold's introspection.go, and
+# until this job existed nothing checked it: a renamed field would leave fold's
+# tests green, this repo's tests green, and operators looking at blank cards.
+#
+# So this installs a real fold, starts it, and measures the live response
+# against src/lib/contract.ts.
+#
+# The pin is deliberate, and is the mirror image of fold pinning this repo by
+# commit. On a pull request it tests the release this console is built for, so
+# an unrelated change upstream cannot turn someone's PR red. Once a week it
+# tests @latest instead, which is the early warning: if fold's main has moved
+# the contract, this is where it surfaces, on a schedule rather than in
+# somebody's way.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  schedule:
+    - cron: "0 8 * * 1" # Mondays 08:00 UTC, an hour after fold's console-sync
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+env:
+  # The released fold this console is built against. Bump it in the same commit
+  # that starts relying on something newer.
+  FOLD_RELEASE: v1.10.0
+
+jobs:
+  contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+
+      # The published artifact, not `go install`. A proxy build reports its
+      # version as "dev" — goreleaser sets it with ldflags, and the module
+      # proxy path cannot — so installing that way would test a binary no
+      # operator on a release runs, and would make the version assertion in the
+      # suite meaningless. This downloads the same bytes a human downloads.
+      - name: fetch fold
+        id: fold
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/fold"
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            # Latest release: the early-warning run.
+            gh release download --repo fold-run/fold \
+              --pattern 'fold_*_linux_amd64.tar.gz' --dir "$RUNNER_TEMP/fold"
+          else
+            gh release download "$FOLD_RELEASE" --repo fold-run/fold \
+              --pattern 'fold_*_linux_amd64.tar.gz' --dir "$RUNNER_TEMP/fold"
+          fi
+          tar xzf "$RUNNER_TEMP"/fold/fold_*_linux_amd64.tar.gz -C "$RUNNER_TEMP/fold"
+          echo "$RUNNER_TEMP/fold" >> "$GITHUB_PATH"
+          "$RUNNER_TEMP/fold/fold" --version
+
+      - name: start a gateway
+        run: |
+          # One upstream that is deliberately not listening: a federation where
+          # everything is healthy never populates `error`, and that field is
+          # part of the contract too.
+          cat > /tmp/fold.json <<'JSON'
+          {
+            "upstreams": [
+              { "id": "probe", "url": "http://127.0.0.1:3999/mcp", "namespace": "probe" }
+            ],
+            "server": {
+              "introspection": { "enabled": true },
+              "console": { "enabled": true }
+            }
+          }
+          JSON
+          fold --config /tmp/fold.json --port 8099 > /tmp/gateway.log 2>&1 &
+          for i in $(seq 1 30); do
+            curl -sf -o /dev/null "http://127.0.0.1:8099/api/federation" && break
+            sleep 2
+          done
+          curl -sf -o /dev/null "http://127.0.0.1:8099/api/federation" || {
+            echo "gateway never became ready:"; cat /tmp/gateway.log; exit 1;
+          }
+
+      - name: contract
+        env:
+          FOLD_GATEWAY_URL: http://127.0.0.1:8099
+        run: pnpm test:contract
+
+      - name: gateway log
+        if: failure()
+        run: cat /tmp/gateway.log

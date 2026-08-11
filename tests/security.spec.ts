@@ -152,15 +152,24 @@ test.describe('gateway refusals', () => {
 
 test.describe('version skew', () => {
   test('a gateway older than the minimum says so', async ({ page }) => {
-    await mockGateway(page, { federation: federation({ version: '1.8.2', consoleSource: undefined }) })
+    await mockGateway(page, { federation: federation({ version: 'v1.8.2', consoleSource: undefined }) })
     await page.goto('./')
     await expect(page.getByRole('alert')).toContainText('needs fold 1.9.0 or newer')
   })
 
   test('a current gateway says nothing', async ({ page }) => {
-    await mockGateway(page, { federation: federation({ version: '1.9.0' }) })
+    await mockGateway(page, { federation: federation({ version: 'v1.9.0' }) })
     await page.goto('./')
     await expect(page.getByRole('alert')).toHaveCount(0)
+  })
+
+  test('a version without the v prefix parses the same', async ({ page }) => {
+    // Released gateways carry the tag verbatim, so the prefix is always there
+    // in practice; a gateway built another way may not have it, and the gate
+    // must not silently pass everything just because the string looks odd.
+    await mockGateway(page, { federation: federation({ version: '1.8.2', consoleSource: undefined }) })
+    await page.goto('./')
+    await expect(page.getByRole('alert')).toContainText('needs fold 1.9.0 or newer')
   })
 
   test('a development build is not treated as stale', async ({ page }) => {
