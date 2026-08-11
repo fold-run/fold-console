@@ -1,0 +1,9 @@
+{
+  "upstreams": [
+    { "id": "everything", "url": "http://127.0.0.1:3901/mcp", "namespace": "everything" }
+  ],
+  "server": {
+    "introspection": { "enabled": true },
+    "console": { "enabled": true }
+  }
+}

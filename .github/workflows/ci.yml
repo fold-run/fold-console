@@ -1,0 +1,76 @@
+name: ci
+
+# These assets ship inside every fold binary and execute in an operator's
+# browser next to a live Bearer token. There is no build step to catch
+# anything, so CI is the only thing standing between a typo here and a broken
+# console in a shipped release.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+
+      - name: syntax
+        run: node --check console/app.js
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: stable
+
+      - name: dev harness builds
+        run: go vet ./dev
+
+      # The CSP is default-src 'self' plus, when sign-in is configured, exactly
+      # the OAuth issuer's origin. Anything else the page tries to fetch fails
+      # silently in a shipped binary, where it is expensive to discover. The
+      # allowlist is the footer's outbound links, which are navigations rather
+      # than fetches.
+      - name: no external URLs
+        run: |
+          allow='https://fold\.run|https://docs\.fold\.run|https://github\.com/fold-run|https://status\.fold\.run'
+          if hits=$(grep -nE 'https?://' console/app.js console/style.css console/index.html \
+                    | grep -vE "$allow" | grep -vE '^\S+: *(//|\*|<!--)'); then
+            echo "external URLs are not permitted by the console's CSP:"
+            echo "$hits"
+            exit 1
+          fi
+          echo "no unexpected external URLs"
+
+      # The assets are embedded in every fold binary. A regression here is
+      # bytes on every operator's disk, so the ceiling is deliberate rather
+      # than aspirational — raise it in a commit that says why.
+      - name: asset size budget
+        run: |
+          limit=$((320 * 1024))
+          size=$(find console -type f -exec cat {} + | wc -c)
+          echo "console assets: $size bytes (limit $limit)"
+          if [ "$size" -gt "$limit" ]; then
+            echo "over budget — these ship inside every fold binary"
+            exit 1
+          fi
+
+      # Upstream strings (tool names, descriptions, errors) come from federated
+      # servers and are untrusted. The console renders with textContent
+      # throughout; innerHTML would turn a hostile upstream into script
+      # execution on the gateway's own origin, next to the operator's token.
+      - name: no innerHTML
+        run: |
+          if grep -n 'innerHTML' console/app.js; then
+            echo "use textContent — upstream-controlled strings are untrusted"
+            exit 1
+          fi
+          echo "no innerHTML"
