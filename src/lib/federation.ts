@@ -100,17 +100,26 @@ export class ApiError extends Error {
   }
 }
 
-// Relative to this page's base (/console/), so it survives any prefix a
-// fronting proxy adds. "../api/federation" resolves to /api/federation at the
-// root and to /fold/api/federation behind a proxy adding /fold; an absolute
-// path would break the second case. fold's own test suite greps the vendored
+// Relative to this page's base (/console/), so they survive any prefix a
+// fronting proxy adds: "../api/federation" resolves to /api/federation at the
+// root and to /fold/api/federation behind a proxy adding /fold. An absolute
+// path would break the second case, and fold's test suite greps the vendored
 // bundle for `fetch("/api/` and fails the build if it finds one.
-export const API_BASE = '../api'
+//
+// Written as whole literals rather than composed from a shared base, which is
+// the one thing here that looks like it wants refactoring and must not be.
+// fold's TestConsoleAssetsTargetCurrentAPI greps the same bundle for these
+// exact strings, to catch a console pinned to the pre-v1.9 endpoint names —
+// and `${BASE}/federation` minifies to `${e}/federation`, which defeats it
+// silently. Losing that check would leave real version skew to be discovered
+// by an operator staring at a dashboard that never loads.
+export const FEDERATION_URL = '../api/federation'
+export const AUTH_HINT_URL = '../api/auth-hint'
 
 export async function fetchFederation(signal?: AbortSignal): Promise<FederationState> {
   let res: Response
   try {
-    res = await fetch(`${API_BASE}/federation`, { headers: authHeaders(), signal })
+    res = await fetch(FEDERATION_URL, { headers: authHeaders(), signal })
   } catch (err) {
     throw new ApiError(0, `state fetch failed: ${(err as Error).message}`)
   }
