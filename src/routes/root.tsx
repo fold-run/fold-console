@@ -36,12 +36,16 @@ export function useFederation() {
   return useContext(FederationContext)
 }
 
-/** Page titles, one per route. */
+/** Page titles, one per route. Also what the route announcer reads out. */
 const TITLES: Record<string, string> = {
   '/': 'Overview',
   '/upstreams': 'Upstreams',
   '/catalog': 'Catalog',
   '/test': 'Test console',
+}
+
+function sectionFor(pathname: string): string {
+  return TITLES[pathname] ?? (pathname.startsWith('/upstreams/') ? 'Upstream' : 'Not found')
 }
 
 function RootLayout() {
@@ -72,14 +76,14 @@ function RootLayout() {
 
   const onSignIn = useCallback(() => {
     setSignInError(null)
-    signIn(hint!).catch((err: unknown) => setSignInError(`sign-in failed: ${(err as Error).message}`))
+    signIn(hint!).catch((err: unknown) => setSignInError(`Sign-in failed: ${(err as Error).message}`))
   }, [hint])
 
   const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const section = sectionFor(pathname)
   useEffect(() => {
-    const section = TITLES[pathname] ?? (pathname.startsWith('/upstreams/') ? 'Upstream' : 'Not found')
     document.title = `${section} · fold console`
-  }, [pathname])
+  }, [section])
 
   const skew = skewWarning(federation.data?.version)
 
@@ -95,6 +99,9 @@ function RootLayout() {
           onSignIn={onSignIn}
           onRefresh={refresh}
           refreshing={federation.isFetching}
+          updatedAt={federation.dataUpdatedAt}
+          failed={Boolean(error)}
+          section={section}
         >
           {signInError ? <Banner>{signInError}</Banner> : null}
           {error ? <Banner>{error.message}</Banner> : null}

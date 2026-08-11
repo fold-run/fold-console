@@ -128,7 +128,7 @@ export async function handleCallback(hint: AuthHint | null): Promise<string | nu
 
   if (q.has('error')) {
     const desc = q.get('error_description')
-    return `sign-in failed: ${q.get('error')}${desc ? `: ${desc}` : ''}`
+    return `Sign-in failed: ${q.get('error')}${desc ? `. ${desc}` : ''}`
   }
 
   let saved: { verifier?: string; state?: string; tokenEndpoint?: string } | null = null
@@ -138,10 +138,10 @@ export async function handleCallback(hint: AuthHint | null): Promise<string | nu
     // treated as missing
   }
   if (!saved?.state || saved.state !== q.get('state')) {
-    return 'sign-in failed: state mismatch — start again from this page.'
+    return 'Sign-in failed: state mismatch. Start again from this page.'
   }
   if (!hint?.oauth || !saved.tokenEndpoint || !saved.verifier) {
-    return 'sign-in failed: the gateway no longer advertises the issuer this flow started against.'
+    return 'Sign-in failed: the gateway no longer advertises the issuer this flow started against.'
   }
 
   const body = new URLSearchParams({
@@ -166,11 +166,11 @@ export async function handleCallback(hint: AuthHint | null): Promise<string | nu
     }
     if (!res.ok || !tok.access_token) {
       const desc = tok.error_description ? `: ${tok.error_description}` : ''
-      return `token exchange failed: ${tok.error ?? `HTTP ${res.status}`}${desc}`
+      return `Token exchange failed: ${tok.error ?? `HTTP ${res.status}`}${desc}`
     }
     setToken(tok.access_token, 'signed-in')
     return null
   } catch (err) {
-    return `token exchange failed: ${(err as Error).message}`
+    return `Token exchange failed: ${(err as Error).message}`
   }
 }

@@ -99,6 +99,23 @@ to the number it had before the rewrite.
 shipped font files are identical, since nothing catches that by eye: the page
 renders, it just renders wrong.
 
+## Where the design system lives
+
+`fold.run`'s `DESIGN.md` / `DESIGN.json` is canonical: the colour roles, the one
+2px radius, the Live-is-proof rule and the wordmark all originate there, and
+`src/styles/app.css` restates the tokens because the console cannot import
+across repos. There is deliberately no `DESIGN.md` in this repo. A second copy
+of the system is a second thing to drift, and it already has: the console
+shipped the pre-2026-08-10 stroked mark for a while under a stylesheet header
+claiming to follow that revision. The wordmark now matches, and the colour
+tokens were checked against `DESIGN.json` at the same time.
+
+The one thing this console defines for itself is density. Marketing surfaces
+set controls at 44px; this one runs at 34px because it stacks a filter row, a
+picker and a table on a laptop, and comfortable spacing would push the
+federation below the fold. Small controls compensate with pointer targets
+larger than their boxes rather than by growing.
+
 ## Deliberately not done
 
 - **A component library or design system.** fold's tokens already live in
@@ -144,6 +161,33 @@ the input event, so declaring both `onInput` and `onChange` left one handler
 clobbering the other — keystrokes were swallowed and a pasted token
 authenticated nothing. Nothing in the browser looked wrong, and every static
 check passed.
+
+## The polish pass
+
+Three of these were real bugs rather than refinements, and all three were
+invisible to every static check:
+
+- **A bare `header` selector.** The app bar's styles matched every page's
+  `<header class="page-head">` too, handing each one 1.5rem of side padding. Every
+  h1 in the console sat 24px right of the content beneath it.
+- **A grid absorbing flex slack.** `.body` grows to fill the viewport, and a grid
+  hands that slack to its rows. Once the sidebar stacked above the content on
+  narrow screens, its row swallowed ~140px and opened a hole between the nav and
+  the page title.
+- **The wire log stopped following.** Auto-scroll was lost in the rewrite. The
+  fix has its own trap: "is the operator at the tail" cannot be measured after
+  the content grows, because by then they measure as scrolled away by exactly
+  the height of the message that just arrived. Intent is tracked from scroll
+  events instead.
+
+Added, in the same pass: a freshness indicator in the top bar (a snapshot that
+does not say how old it is is a screenshot, not evidence), skeletons shaped like
+the content, a skip link, route announcements, hit areas ≥44px on the two
+controls too small to hit, and progressive disclosure on the test console, which
+used to announce "not connected" and then render the whole form disabled.
+
+Motion earns its place only where it conveys state: a toast arriving, a banner
+appearing, the polling dot pulsing. Everything else is still.
 
 ## Still open
 

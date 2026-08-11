@@ -1,14 +1,15 @@
-// The application shell: brand, identity controls, primary navigation, footer.
+// The application shell: brand, freshness, identity controls, navigation, footer.
 //
 // The old console was one scrolling page, which is why everything on it had to
 // be visible at once. A persistent sidebar over a routed content area is the
 // piece that makes more than one view possible, and nearly everything else in
-// this console depends on it. Navigation is a list of routes; the header holds
-// the one control that affects every route (who you are) and nothing else.
+// this console depends on it. Navigation is a list of routes; the top bar holds
+// only what applies to every route — how current the data is, and who you are.
 import { Link, useRouterState } from '@tanstack/react-router'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { ComponentChildren } from 'preact'
 import { Wordmark } from './Wordmark'
+import { FreshnessIndicator } from './Freshness'
 import { useSession, setToken, clearToken } from '@/lib/session'
 import { displayVersion } from '@/lib/version'
 import type { AuthHint } from '@/lib/oauth'
@@ -32,6 +33,10 @@ interface Props {
   onSignIn: () => void
   onRefresh: () => void
   refreshing: boolean
+  updatedAt: number
+  failed: boolean
+  /** The current route's name, announced on navigation. */
+  section: string
   children: ComponentChildren
 }
 
@@ -42,11 +47,15 @@ export function Shell({
   onSignIn,
   onRefresh,
   refreshing,
+  updatedAt,
+  failed,
+  section,
   children,
 }: Props) {
   const session = useSession()
   const [draft, setDraft] = useState('')
   const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const main = useRef<HTMLElement>(null)
 
   const signedIn = session.state === 'signed-in'
   // With auth off no token will ever be needed; a field that does nothing is
@@ -62,23 +71,35 @@ export function Shell({
 
   return (
     <div class="shell">
-      <header>
+      {/* A button, not an anchor: this console routes on the fragment, so an
+          href="#main" would be read as a route and navigate away. */}
+      <button type="button" class="skip" onClick={() => main.current?.focus()}>
+        Skip to content
+      </button>
+
+      <header class="topbar">
         <Link to="/" className="brand" aria-label="fold console, overview">
-          <Wordmark title="fold" />
-          <span class="wm-rule" aria-hidden="true" />
-          <span class="wm-desc">Console</span>
+          <Wordmark title="fold" descriptor="Console" />
           {version ? <span class="version muted">{displayVersion(version)}</span> : null}
         </Link>
 
         <div class="auth">
+          <FreshnessIndicator updatedAt={updatedAt} fetching={refreshing} failed={failed} />
+
           {hint?.oauth && !signedIn ? (
             <button type="button" onClick={onSignIn}>
               Sign in
             </button>
           ) : null}
           {signedIn ? (
-            <button type="button" onClick={() => { clearToken(); onRefresh() }}>
-              Signed in ✓ — sign out
+            <button
+              type="button"
+              onClick={() => {
+                clearToken()
+                onRefresh()
+              }}
+            >
+              Sign out
             </button>
           ) : null}
           {showTokenField ? (
@@ -88,7 +109,7 @@ export function Shell({
               autocomplete="off"
               spellcheck={false}
               aria-label="Bearer token"
-              placeholder={hint?.oauth ? '…or paste a Bearer token' : 'Bearer token (if auth is required)'}
+              placeholder={hint?.oauth ? '…or paste a Bearer token' : 'Bearer token'}
               // onInput only. preact/compat aliases React's onChange onto the
               // input event, so declaring both left one handler clobbering the
               // other: keystrokes were swallowed, `draft` never advanced past
@@ -102,7 +123,7 @@ export function Shell({
             />
           ) : null}
           <button type="button" onClick={onRefresh} disabled={refreshing}>
-            {refreshing ? 'Refreshing…' : 'Refresh'}
+            Refresh
           </button>
         </div>
       </header>
@@ -114,7 +135,7 @@ export function Shell({
               <li key={item.to}>
                 <Link
                   to={item.to}
-                  // activeProps only matches the exact path; an upstream detail
+                  // activeProps matches the exact path only; an upstream detail
                   // page must still light up "Upstreams".
                   className={isActive(pathname, item.to) ? 'nav-link active' : 'nav-link'}
                   aria-current={isActive(pathname, item.to) ? 'page' : undefined}
@@ -126,8 +147,14 @@ export function Shell({
           </ul>
         </nav>
 
-        <main>{children}</main>
+        {/* tabIndex -1 so the skip control can move focus here without adding
+            the element to the tab order. */}
+        <main id="main" ref={main} tabIndex={-1}>
+          {children}
+        </main>
       </div>
+
+      <RouteAnnouncer section={section} />
 
       <footer>
         <div class="foot">
@@ -143,6 +170,33 @@ export function Shell({
         </div>
       </footer>
     </div>
+  )
+}
+
+/**
+ * Announce route changes.
+ *
+ * A client-side navigation replaces the content under a screen reader without
+ * saying anything; the user is left on a page that silently became a different
+ * one. The title change alone does not announce in most combinations.
+ */
+function RouteAnnouncer({ section }: { section: string }) {
+  const [message, setMessage] = useState('')
+  const first = useRef(true)
+  useEffect(() => {
+    // The initial render is not a navigation, and announcing it would talk
+    // over the page the user just arrived at.
+    if (first.current) {
+      first.current = false
+      return
+    }
+    setMessage(`${section} page`)
+  }, [section])
+
+  return (
+    <p class="visually-hidden" role="status" aria-live="polite">
+      {message}
+    </p>
   )
 }
 
