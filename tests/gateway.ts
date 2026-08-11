@@ -62,7 +62,10 @@ export interface Federation {
 }
 
 export const federation = (over: Partial<Federation> = {}): Federation => ({
-  version: '1.9.0',
+  // With the `v`: goreleaser passes the git tag straight into
+  // gateway.version, so this is the shape a released gateway actually serves.
+  // Verified against a real one by tests/contract.spec.ts.
+  version: 'v1.10.0',
   authRequired: false,
   emaEnabled: false,
   passthrough: false,

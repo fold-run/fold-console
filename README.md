@@ -110,7 +110,18 @@ for hot reload, so the strict policy can only be honest about built output.
 > server that proxies. The header replay — the part that actually caught
 > regressions — moved into `vite.config.ts`.
 
-`pnpm typecheck` and `pnpm lint` are what CI runs.
+`pnpm typecheck`, `pnpm lint` and `pnpm test:e2e` are what CI runs.
+
+`pnpm test:contract` is the one that needs a gateway. It measures a live
+`/api/federation` against what this console believes it returns, which is the
+only check here that can be wrong about fold rather than about itself:
+
+```sh
+FOLD_GATEWAY_URL=http://localhost:8080 pnpm test:contract
+```
+
+Without that variable it skips, so it costs a laptop nothing. CI runs it
+against the published release named in `.github/workflows/contract.yml`.
 
 ## What the assets may not do
 
