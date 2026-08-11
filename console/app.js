@@ -193,7 +193,7 @@ async function refreshState() {
     return;
   }
   if (res.status === 403) {
-    banner("This principal is not in the console viewer allowlist (server.console.groups). The denial was audited.");
+    banner("This principal is not in the introspection viewer allowlist (server.introspection.groups). The denial was audited.");
     stopPolling();
     return;
   }
