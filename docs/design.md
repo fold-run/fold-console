@@ -189,10 +189,40 @@ used to announce "not connected" and then render the whole form disabled.
 Motion earns its place only where it conveys state: a toast arriving, a banner
 appearing, the polling dot pulsing. Everything else is still.
 
+## The topology view
+
+`/upstreams?view=map` draws the federation in fold's fold-line vocabulary
+(`DESIGN.md` §5): dashed fold-lines on the fold-line grey, nodes on Rack with
+Trace strokes, the gateway stroked in Live and carrying the wordmark rather
+than a label, notch marks at the governed boundary, and a Live grain arrow on
+each route that is carrying.
+
+It departs from fold.run in exactly one way, and has to: every diagram on the
+site is hand-authored, and this one cannot be, because nobody knows the shape
+of an operator's federation in advance. So the vocabulary is a generator.
+
+**It earns its place by saying two things a table cannot.** The fan — one
+endpoint in front of N servers is fold's whole proposition, and rows do not
+show it. And the boundary — every route crosses the same notched seam, which is
+where auth, policy and audit happen; a row cannot draw something true of all
+rows at once. Everything else stays in the table, which is why each node is a
+link into the detail route rather than a tooltip.
+
+It is a view on `/upstreams` rather than its own route so that both
+representations share one filtered set, one empty state and one loading state.
+Filtering to `status=disconnected` and switching to the map is the move it
+exists for.
+
+Route treatment is the health readout: Live for connected with the breaker
+closed, Down for failed, the neutral ramp for half-open, which is neither
+proven nor failed. An upstream reporting no breaker at all reads as connected —
+absence is version skew, not a state.
+
+Beyond 40 upstreams the fan stops being a shape and becomes a texture, so the
+drawing caps there and the caption names the remainder. It is never silently
+truncated.
+
 ## Still open
 
 - **Persisted view preferences.** Everything is in the URL instead, which is
   better for sharing and worse for "the way I always look at this".
-- **A federation topology view.** fold's data would support one — namespaces,
-  endpoints, breaker state — and it is the one view that would say something a
-  table cannot.

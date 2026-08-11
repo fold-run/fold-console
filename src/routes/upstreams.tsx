@@ -13,11 +13,16 @@ import { PageHeader } from '@/components/PageHeader'
 import { DataTable, sortRows, type Column, type SortDir } from '@/components/DataTable'
 import { EmptyState } from '@/components/EmptyState'
 import { DocsLink } from '@/components/DocsLink'
+import { Segmented } from '@/components/Segmented'
+import { Topology } from '@/components/Topology'
 import { rootRoute, useFederation } from './root'
 import type { UpstreamHealth } from '@/lib/federation'
 import { latency, matches, orEmpty, ownerLine } from '@/lib/format'
 
+type View = 'table' | 'map'
+
 interface Search {
+  view?: View
   q?: string
   source?: 'static' | 'discovered'
   status?: 'connected' | 'disconnected'
@@ -35,6 +40,7 @@ function validateSearch(raw: Record<string, unknown>): Search {
   const q = typeof raw.q === 'string' && raw.q ? raw.q : undefined
   const sort = typeof raw.sort === 'string' && raw.sort ? raw.sort : undefined
   return {
+    ...(raw.view === 'map' ? { view: 'map' as const } : {}),
     ...(q ? { q } : {}),
     ...(sort ? { sort } : {}),
     ...(pick(raw.source, ['static', 'discovered'] as const)
@@ -142,6 +148,7 @@ function Upstreams() {
   }
 
   const filtering = Boolean(search.q || search.source || search.status)
+  const view: View = search.view === 'map' ? 'map' : 'table'
 
   return (
     <>
@@ -151,6 +158,15 @@ function Upstreams() {
         actions={<DocsLink topic="federation" version={state?.version}>Federation docs</DocsLink>}
       >
         <div class="filters">
+          <Segmented
+            label="View"
+            value={view}
+            onChange={(next) => setSearch({ view: next === 'map' ? 'map' : undefined })}
+            options={[
+              { value: 'table', label: 'Table' },
+              { value: 'map', label: 'Map' },
+            ]}
+          />
           <input
             type="search"
             class="filter-text"
@@ -191,6 +207,9 @@ function Upstreams() {
         </div>
       </PageHeader>
 
+      {view === 'map' && state && filtered.length > 0 ? (
+        <Topology state={state} upstreams={filtered} />
+      ) : (
       <DataTable
         caption="Federated upstreams"
         columns={columns}
@@ -218,6 +237,7 @@ function Upstreams() {
           )
         }
       />
+      )}
     </>
   )
 }
