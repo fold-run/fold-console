@@ -1,34 +1,51 @@
-// Version-aware documentation links: the docs an operator opens from a
-// running gateway should be the docs for *that* gateway, not for whatever is
-// on main.
+// Links out to the documentation.
 //
-// These are the only external URLs in the console, and they are navigations
-// rather than fetches — CSP's form-action/frame-ancestors do not gate a
-// user-initiated link, and connect-src never sees one. The set is fixed and
-// CI checks it against the same allowlist fold's own CSP implies.
-import { minorLine } from './version'
+// These were versioned — `docs.fold.run/1.10/configuration/` — on the reasoning
+// that the docs an operator opens from a running gateway should be the docs for
+// *that* gateway. It is a good idea, borrowed from tools whose documentation is
+// published per release. fold's is not: docs.fold.run is a single unversioned
+// Starlight site, so every one of those links was a 404, and three of the topic
+// slugs did not exist under any prefix either.
+//
+// Nothing caught it. They are external navigations, so no CSP rule and no test
+// touched them, and a link that looks plausible reads as correct right up until
+// somebody clicks it. tests/docs-links.spec.ts now fetches every URL this can
+// produce and asserts each one answers 200, which is the only check that would
+// have.
+//
+// Targets below are verified against the live site, anchors included.
 
 const DOCS_ROOT = 'https://docs.fold.run'
 
 export type DocTopic =
   | 'configuration'
-  | 'federation'
+  | 'upstreams'
   | 'policy'
   | 'auth'
   | 'observability'
   | 'tenancy'
   | 'discovery'
 
+/**
+ * Where each surface of this console sends an operator.
+ *
+ * Anchors are used where the page is broad and the question is narrow: someone
+ * reading the Governance cards wants the `policy` block, not the top of a
+ * configuration reference that opens on `upstreams`.
+ */
 const TOPIC_PATH: Record<DocTopic, string> = {
-  configuration: 'configuration',
-  federation: 'federation',
-  policy: 'policy',
-  auth: 'auth',
-  observability: 'observability',
-  tenancy: 'tenancy',
-  discovery: 'discovery',
+  configuration: 'configuration/',
+  upstreams: 'configuration/#upstreams-required',
+  policy: 'configuration/#policy',
+  auth: 'configuration/#auth-gateway-authentication',
+  observability: 'operations/',
+  tenancy: 'tenancy/',
+  discovery: 'discovery/',
 }
 
-export function docsLink(topic: DocTopic, gatewayVersion?: string): string {
-  return `${DOCS_ROOT}/${minorLine(gatewayVersion)}/${TOPIC_PATH[topic]}/`
+/** Every URL this module can produce, for the link check to walk. */
+export const DOC_TOPICS = Object.keys(TOPIC_PATH) as DocTopic[]
+
+export function docsLink(topic: DocTopic): string {
+  return `${DOCS_ROOT}/${TOPIC_PATH[topic]}`
 }

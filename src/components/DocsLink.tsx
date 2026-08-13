@@ -2,7 +2,6 @@ import { docsLink, type DocTopic } from '@/lib/docs'
 
 interface Props {
   topic: DocTopic
-  version: string | undefined
   children: string
 }
 
@@ -15,9 +14,9 @@ interface Props {
  * on every page. Out here it also fills the right side of the page header,
  * which was otherwise empty on the two read-only routes.
  */
-export function DocsLink({ topic, version, children }: Props) {
+export function DocsLink({ topic, children }: Props) {
   return (
-    <a class="group-action" href={docsLink(topic, version)} rel="noopener">
+    <a class="group-action" href={docsLink(topic)} rel="noopener">
       {children} →
     </a>
   )
