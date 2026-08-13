@@ -154,6 +154,31 @@ choice and are worth stating, because they are what the suite is *for*:
   empty federation, an open breaker, a server answering method-not-found. It
   cannot buy contract fidelity, which is what `tests/contract.spec.ts` is for.
 
+### The accessibility suite
+
+`tests/a11y.spec.ts` runs axe over every route and over the states that only
+exist after an interaction: a connected catalog, the test console with a result
+and a wire log, an unauthorized gateway with its banner, and the skip control
+while focused.
+
+It is not a replacement for judgement — axe cannot tell whether an
+announcement is useful or whether "not updating" is the right phrase — but the
+accessibility work here was done by hand and verified by reading, which checks
+only the things the author thought of. It found one:
+
+**Links inside prose were distinguished from the text around them by colour
+alone.** A Carrier link in a paragraph of Static text is a 1.4:1 difference,
+which fails WCAG 1.4.1. fold.run already underlines links inside `main p` and
+`.lede`; the console had dropped the rule. Standalone links — nav, footer, card
+actions, table cells — keep the clean treatment, because position makes them
+unambiguous.
+
+One thing the suite has to work around: scanning mid-animation measures a
+composited colour. axe reported the Down banner at `#bf3c5d`, which is
+`#FF4C79` part-way through its 180ms entrance, not a contrast failure. The scan
+waits for finite animations to finish, filtering out the freshness dot's
+infinite pulse, which would never resolve.
+
 ### The contract suite
 
 `src/lib/federation.ts` is a hand transcription of fold's `introspection.go`,
