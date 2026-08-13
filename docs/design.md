@@ -95,9 +95,40 @@ four static subsets keeps fold's manifest untouched and gives back 71 KiB —
 more than the entire framework had cost, which is why the byte budget went back
 to the number it had before the rewrite.
 
-`scripts/subset-fonts.py` regenerates them from `fonts-src/`. CI asserts no two
-shipped font files are identical, since nothing catches that by eye: the page
-renders, it just renders wrong.
+### Where the fonts come from
+
+`fonts-src/sources.json` pins the upstream release each face is cut from, by
+tag and by sha256, and `scripts/subset-fonts.py` refuses to build from a
+download that does not match. Before that the directory held the
+previously-shipped subsets, which made the provenance circular: the source of
+the bytes was the bytes, and nobody could verify that what a fold binary embeds
+is really IBM Plex Sans and Geist Mono — in a repo whose whole vendoring
+discipline exists to make that kind of question answerable.
+
+Both projects ship designed weights next to their variable fonts, so the script
+takes Regular and SemiBold directly rather than instancing an axis. That is the
+weight their type designers drew, and one less transformation between upstream
+and an operator's screen.
+
+Three things fell out of doing it properly:
+
+- **Smaller, not larger.** 47 KiB against 55 KiB, because the subsetter now
+  runs with the same settings the previously-shipped files were built with:
+  the standard webfont feature set rather than every feature (which retains
+  stylistic alternates nothing here asks for), and unhinted, which is what
+  those files always were and what Google Fonts serves for latin.
+- **The arrows are ours now.** The Google latin range carries `U+2191` and
+  `U+2193` but not `U+2190`/`U+2192` — and the console renders `→` in every
+  docs link and `←` on the back link, and prefixes *every line of the wire
+  log* with one. They had been coming from whatever the system fell back to,
+  which in a monospace pane means an arrow that does not match the column it
+  starts. The range is widened to `U+2190-2193`.
+- **The licence rides inside the file.** The name records are pinned to keep
+  IDs 13 and 14, which fontTools' default drops, so the OFL text is in the
+  font as well as in `fonts/OFL.txt`.
+
+CI asserts no two shipped font files are identical, since nothing catches that
+by eye: the page renders, it just renders wrong.
 
 ## Where the design system lives
 

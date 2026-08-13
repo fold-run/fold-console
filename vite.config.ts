@@ -30,6 +30,12 @@ const FOLD_CSP =
 
 const GATEWAY = process.env.FOLD_GATEWAY ?? 'http://127.0.0.1:8080'
 
+// Overridable because 5173 is Vite's default and therefore the port every
+// other Vite project on a machine also wants. Vite would happily fall back to
+// the next free one, but Playwright watches a fixed URL and would sit waiting
+// on a server that moved. One variable keeps the two agreeing.
+const PORT = Number(process.env.FOLD_CONSOLE_PORT ?? 5173)
+
 /**
  * Serve the built bundle the way fold serves it.
  *
@@ -125,6 +131,7 @@ export default defineConfig(({ command }) => ({
       },
     },
   },
-  server: { port: 5173, proxy },
-  preview: { port: 5173, proxy },
+  // strictPort: fall back silently and the harness watches the wrong door.
+  server: { port: PORT, strictPort: true, proxy },
+  preview: { port: PORT, strictPort: true, proxy },
 }))

@@ -148,6 +148,16 @@ export interface GatewayOptions {
   federation?: Federation
   /** HTTP status for /api/federation. 401 and 403 are the interesting ones. */
   federationStatus?: number
+  /**
+   * Hold the federation response back, to make the loading state observable.
+   *
+   * It belongs here rather than in a per-test `page.route`: Playwright matches
+   * handlers most-recent-first, so a delayed route registered before
+   * mockGateway is shadowed by mockGateway's own and never runs. A test
+   * written that way passes only while the app happens to take a frame to
+   * render, and fails the first time it runs on a fast machine.
+   */
+  federationDelayMs?: number
   authHint?: { authRequired: boolean; resource?: string; oauth?: { issuer: string; clientId: string } } | null
   mcp?: McpOptions
 }
@@ -175,8 +185,11 @@ export async function mockGateway(page: Page, opts: GatewayOptions = {}): Promis
   const tools = opts.mcp?.tools ?? defaultTools
   const received: Received = { federationAuth: [], mcpAuth: [] }
 
-  await page.route('**/api/federation', (route: Route) => {
+  await page.route('**/api/federation', async (route: Route) => {
     received.federationAuth.push(route.request().headers()['authorization'] ?? '')
+    if (opts.federationDelayMs) {
+      await new Promise((resolve) => setTimeout(resolve, opts.federationDelayMs))
+    }
     if (status !== 200) {
       return route.fulfill({ status, contentType: 'text/plain', body: 'denied' })
     }

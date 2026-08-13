@@ -212,15 +212,17 @@ test('a full walk of the app raises no CSP violation', async ({ page }) => {
   expect(violations).toEqual([])
 })
 
-test('every asset the page loads is same-origin', async ({ page }) => {
+test('every asset the page loads is same-origin', async ({ page, baseURL }) => {
   // A CDN font or script fails silently inside a shipped binary, where it is
   // expensive to discover. CI greps the bundle for external URLs; this checks
   // what the browser actually requested, which also covers anything assembled
   // at runtime.
   await mockGateway(page)
-  // A literal origin, not page.url(): before the first navigation that is
-  // about:blank, whose origin is "null", and every request then looks foreign.
-  const ORIGIN = 'http://localhost:5173'
+  // From the config, not a literal and not page.url(). A literal pins the test
+  // to one port and breaks the moment the harness moves; page.url() is
+  // about:blank before the first navigation, whose origin is "null", which
+  // makes every request look foreign.
+  const ORIGIN = new URL(baseURL!).origin
   const foreign: string[] = []
   page.on('request', (r) => {
     const u = new URL(r.url())

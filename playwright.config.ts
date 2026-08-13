@@ -10,7 +10,9 @@
 // away, and why, is documented there.
 import { defineConfig, devices } from '@playwright/test'
 
-const PORT = 5173
+// Kept in step with vite.config.ts via the same variable: 5173 is contended
+// on any machine running more than one Vite project.
+const PORT = Number(process.env.FOLD_CONSOLE_PORT ?? 5173)
 const BASE = `http://localhost:${PORT}/console/`
 
 export default defineConfig({

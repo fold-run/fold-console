@@ -181,15 +181,9 @@ test('the wire log follows the tail as messages arrive', async ({ page }) => {
 
 test('the loading state holds the shape of the answer', async ({ page }) => {
   // Skeletons rather than a line of text, so nothing jumps when data lands.
-  await page.route('**/api/federation', async (route) => {
-    await new Promise((r) => setTimeout(r, 600))
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify(federation()),
-    })
-  })
-  await mockGateway(page)
+  // The delay goes through mockGateway: a separate page.route registered
+  // before it is shadowed, because Playwright matches most-recent-first.
+  await mockGateway(page, { federationDelayMs: 600 })
   await page.goto('#/upstreams')
   await expect(page.locator('.skeleton').first()).toBeVisible()
   await expect(page.locator('tbody').getByRole('link', { name: 'github', exact: true })).toBeVisible()

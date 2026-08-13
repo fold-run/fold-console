@@ -1,0 +1,57 @@
+{
+  "$comment": [
+    "Where the shipped font subsets come from, pinned and checksummed.",
+    "",
+    "Until now fonts-src/ held the previously-shipped subsets themselves, which",
+    "made the provenance circular: the source of the bytes was the bytes. Nobody",
+    "could verify that what a fold binary embeds is really IBM Plex Sans and",
+    "Geist Mono, in a repo whose whole vendoring discipline is built on being",
+    "able to verify exactly that.",
+    "",
+    "These are release assets from the upstream projects, pinned by tag and by",
+    "sha256. scripts/subset-fonts.py refuses to run if a download does not match.",
+    "Bump a version deliberately, in its own commit, and re-run the script."
+  ],
+  "unicodeRange": {
+    "$comment": [
+      "Google Fonts' `latin` subset, which is what the previously-shipped files",
+      "covered (232 and 225 codepoints). Kept identical so this change is about",
+      "provenance and not about which glyphs an operator gets.",
+      "U+0304, U+0308 and U+0329 are combining marks the range carries for",
+      "composed forms; U+FFFD is the replacement character, which a console",
+      "rendering upstream-controlled strings genuinely needs.",
+      "",
+      "One deliberate widening: U+2191,U+2193 becomes U+2190-2193, so the",
+      "left and right arrows are covered too. The console renders them in",
+      "docs links, the back link, and — the one that matters — as the",
+      "direction prefix on every line of the wire log. Outside the subset they",
+      "came from whatever the system happened to fall back to, which in a",
+      "monospace pane means an arrow that does not match the column it starts."
+    ],
+    "value": "U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+2074,U+20AC,U+2122,U+2190-2193,U+2212,U+2215,U+FEFF,U+FFFD"
+  },
+  "families": [
+    {
+      "family": "IBMPlexSans",
+      "project": "https://github.com/IBM/plex",
+      "release": "@ibm/plex-sans@1.1.0",
+      "asset": "ibm-plex-sans.zip",
+      "sha256": "fb365d910566e6d199cc2c15579a7dd9a267128e18431a394ed81f1970c69200",
+      "faces": {
+        "400": "ibm-plex-sans/fonts/complete/ttf/IBMPlexSans-Regular.ttf",
+        "600": "ibm-plex-sans/fonts/complete/ttf/IBMPlexSans-SemiBold.ttf"
+      }
+    },
+    {
+      "family": "GeistMono",
+      "project": "https://github.com/vercel/geist-font",
+      "release": "v1.7.2",
+      "asset": "geist-font-v1.7.2.zip",
+      "sha256": "7fc800d2ac6b92844895196e5041aca55d814c15db70c44f79b3b83ab82b04e2",
+      "faces": {
+        "400": "geist-font/GeistMono/ttf/GeistMono-Regular.ttf",
+        "600": "geist-font/GeistMono/ttf/GeistMono-SemiBold.ttf"
+      }
+    }
+  ]
+}
