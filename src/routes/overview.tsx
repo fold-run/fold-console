@@ -53,7 +53,7 @@ function Overview() {
       <PageHeader
         title="Overview"
         lede="The gateway's own view of its configuration and federation."
-        actions={<DocsLink topic="configuration" version={state.version}>Configuration</DocsLink>}
+        actions={<DocsLink topic="configuration">Configuration</DocsLink>}
       />
 
       <Attention state={state} />
@@ -107,7 +107,7 @@ function Overview() {
       <CardGroup
         title="Governance"
         action={
-          <DocsLink topic="policy" version={state.version}>Policy docs</DocsLink>
+          <DocsLink topic="policy">Policy docs</DocsLink>
         }
       >
         <Card
@@ -152,7 +152,7 @@ function Overview() {
       <CardGroup
         title="Observability"
         action={
-          <DocsLink topic="observability" version={state.version}>Observability docs</DocsLink>
+          <DocsLink topic="observability">Observability docs</DocsLink>
         }
       >
         <Card
@@ -167,7 +167,7 @@ function Overview() {
         <CardGroup
           title="Discovery"
           action={
-            <DocsLink topic="discovery" version={state.version}>Discovery docs</DocsLink>
+            <DocsLink topic="discovery">Discovery docs</DocsLink>
           }
         >
           <Card label="source" value={state.discovery.url} wrap />

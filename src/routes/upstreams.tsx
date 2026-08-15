@@ -155,7 +155,7 @@ function Upstreams() {
       <PageHeader
         title="Upstreams"
         lede="Every MCP server this gateway federates, as the gateway last saw it."
-        actions={<DocsLink topic="federation" version={state?.version}>Federation docs</DocsLink>}
+        actions={<DocsLink topic="upstreams">Upstream config</DocsLink>}
       >
         <div class="filters">
           <Segmented

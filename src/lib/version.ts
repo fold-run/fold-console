@@ -76,12 +76,6 @@ export function skewWarning(gatewayVersion: string | undefined): string | null {
   )
 }
 
-/** "1.9.3" → "1.9" — the docs are published per minor line. */
-export function minorLine(version: string | undefined): string {
-  const p = parse(version)
-  return p ? `${p[0]}.${p[1]}` : 'latest'
-}
-
 /** Display form: releases get a leading v, "dev" is left alone. */
 export function displayVersion(version: string | undefined): string {
   if (!version) return ''

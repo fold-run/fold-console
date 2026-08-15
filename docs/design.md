@@ -75,8 +75,15 @@ curl the API to see one the page has not learned to render.
   form from a tool's schema. With no write API to submit one to, the read-only
   equivalent is to hand the operator a filled-in shape to edit. Required
   properties only; a skeleton carrying every optional field is noise.
-- **Version-aware docs links.** The docs an operator opens from a running
-  gateway should be the docs for *that* gateway.
+- **Docs links straight to the relevant section**, anchored where the page is
+  broad and the question is narrow. These were *versioned* first —
+  `docs.fold.run/1.10/configuration/` — on the reasoning that the docs opened
+  from a running gateway should match that gateway. It is a good idea borrowed
+  from tools whose docs are published per release. fold's are one unversioned
+  site, so every link 404'd, and three topic slugs did not exist under any
+  prefix. Nothing in the repo could have caught it: external navigations are
+  invisible to the CSP and to any test that does not leave the machine.
+  `tests/docs-links.spec.ts` now fetches every URL the console can emit.
 
 ## The fonts were shipping twice
 
