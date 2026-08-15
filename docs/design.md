@@ -279,6 +279,63 @@ used to announce "not connected" and then render the whole form disabled.
 Motion earns its place only where it conveys state: a toast arriving, a banner
 appearing, the polling dot pulsing. Everything else is still.
 
+## Two things borrowed from a prototype, and the rest left alone
+
+An IA study for another console (EdgeVault's) was read against this one. Most
+of it does not apply here and was not taken: it is built around promoting
+config between environments, and this console has no environments, no write
+API, and a byte budget. Its list-with-a-side-panel would also be a regression
+against "the URL is the artifact", because the panel is not addressable and the
+detail *route* already is.
+
+Two things did apply.
+
+**The attention banner on Overview.** Job one in PRODUCT.md is "is the
+federation healthy, and if not which upstream?" This page answered that with a
+count in the Federation card and left the operator to reach `/upstreams` and
+work out the filter. One sentence at the top now names the condition and links
+to the list already filtered to it.
+
+It renders nothing when there is nothing to say. A banner that is always
+present is furniture, and an operator who has learned to skip it has learned to
+skip it on the day it matters. Half-open breakers are not counted: half-open is
+neither proven nor failed, and an upstream reporting no breaker at all is
+version skew rather than a state. A disconnected upstream whose breaker is also
+open is one finding, not two.
+
+It is deliberately **not** `role="alert"`, which is why `Banner` grew an
+`announce` prop. The alerting banners — unauthorized, version skew, a failed
+read — describe the *console* being degraded: they arrive unbidden and the page
+underneath is not what was asked for. Federation health is the opposite. It is
+the answer the operator navigated here to read, and hijacking a screen reader
+to deliver requested content is noise dressed as urgency. Keeping the role
+reserved also keeps `getByRole('alert')` meaning one thing across the suite,
+which two tests were relying on without saying so.
+
+**A jump-to palette.** Ctrl/Cmd-K, navigation only. The existing filters are
+good and stay in the URL, but neither gets you to a page from somewhere else,
+and the catalog runs to several hundred names. Success here is an answer in
+under thirty seconds.
+
+Two details are constraints rather than taste. The shipped subset is latin plus
+`U+2190-2193`, so the hints use words and the two arrows that are actually in
+the file — a command glyph or a return arrow would be drawn by whatever the
+machine fell back to, which is the defect this repo already fixed once for the
+arrows. And the trigger sits in the top bar, after the skip control in DOM
+order, because the skip control is asserted to be the first tab stop.
+
+Both together cost about 13 KiB against the 320 KiB budget, taking it to ~76%.
+
+### What the a11y suite learned from this
+
+`scan()` settled animations once, then scanned. That was enough while every
+banner rendered with the route; the attention banner renders when the *data*
+lands, which is after `<main>` became visible and after the first settle
+resolved — so axe intermittently sampled it mid-fade and reported a contrast
+failure that was really a composite. It now settles, waits two frames, and
+settles again. The same gap applies to anything that arrives with a query
+rather than a route.
+
 ## The topology view
 
 `/upstreams?view=map` draws the federation in fold's fold-line vocabulary

@@ -93,6 +93,7 @@ function RootLayout() {
     >
       <McpProvider mcpPath={federation.data?.mcpPath} gatewayVersion={federation.data?.version}>
         <Shell
+          federation={federation.data}
           version={federation.data?.version}
           authRequired={federation.data?.authRequired}
           hint={hint}

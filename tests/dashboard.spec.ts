@@ -175,3 +175,136 @@ test('an unknown route is a page, not a blank screen', async ({ page }) => {
   await page.goto('#/nope')
   await expect(page.getByText('No such page')).toBeVisible()
 })
+
+test.describe('the attention banner', () => {
+  test('names the disconnected upstream and links to it', async ({ page }) => {
+    await mockGateway(page)
+    await page.goto('./')
+
+    const banner = page.locator('.banner.bad')
+    await expect(banner).toContainText('payments is not connected')
+    // payments is breaker-open too, but it is already counted as down: a
+    // disconnected upstream's breaker is not a second finding about it.
+    await expect(banner).not.toContainText('open breaker')
+
+    await banner.getByRole('link', { name: 'Show them' }).click()
+    await expect(page).toHaveURL(/status=disconnected/)
+    await expect(page.locator('tbody tr')).toHaveCount(1)
+  })
+
+  test('says nothing when the federation is healthy', async ({ page }) => {
+    // Absence over placeholder: a banner that is always there is furniture,
+    // and an operator who has learned to skip it skips it on the day it counts.
+    await mockGateway(page, {
+      federation: federation({
+        upstreams: [
+          { id: 'github', namespace: 'github', connected: true, breaker: 'closed', source: 'static' },
+        ],
+      }),
+    })
+    await page.goto('./')
+    await expect(page.locator('.banner')).toHaveCount(0)
+  })
+
+  test('does not interrupt a screen reader', async ({ page }) => {
+    // It is the answer the operator navigated here to read, not a condition
+    // that arrived unbidden. role="alert" stays reserved for the console being
+    // degraded — skew, unauthorized, a failed read — which is also what keeps
+    // getByRole('alert') meaning one thing in the rest of this suite.
+    await mockGateway(page)
+    await page.goto('./')
+    await expect(page.locator('.banner.bad')).toBeVisible()
+    await expect(page.getByRole('alert')).toHaveCount(0)
+  })
+
+  test('reports an open breaker on an otherwise connected upstream', async ({ page }) => {
+    await mockGateway(page, {
+      federation: federation({
+        upstreams: [
+          { id: 'github', namespace: 'github', connected: true, breaker: 'open', source: 'static' },
+        ],
+      }),
+    })
+    await page.goto('./')
+    const banner = page.locator('.banner.warn')
+    await expect(banner).toContainText('github is connected but its breaker is open')
+    await expect(banner).toContainText('Calls to it fail fast')
+  })
+
+  test('half-open is not reported as a failure', async ({ page }) => {
+    // Neither proven nor failed; the neutral ramp, not a banner.
+    await mockGateway(page, {
+      federation: federation({
+        upstreams: [
+          { id: 'github', namespace: 'github', connected: true, breaker: 'half-open', source: 'static' },
+        ],
+      }),
+    })
+    await page.goto('./')
+    await expect(page.locator('.banner')).toHaveCount(0)
+  })
+})
+
+test.describe('the jump-to palette', () => {
+  test('opens on the keyboard and reaches an upstream', async ({ page }) => {
+    await mockGateway(page)
+    await page.goto('./')
+    await expect(page.getByRole('button', { name: 'Jump to' })).toBeVisible()
+
+    await page.keyboard.press('Control+k')
+    const search = page.getByRole('combobox', { name: 'Search' })
+    await expect(search).toBeFocused()
+
+    await search.fill('payments')
+    await expect(page.getByRole('option')).toHaveCount(1)
+    await page.keyboard.press('Enter')
+    await expect(page).toHaveURL(/#\/upstreams\/payments$/)
+  })
+
+  // The trigger must not displace the skip link as the first tab stop. That
+  // is already asserted by polish.spec.ts ("the first tab stop skips the
+  // navigation"), which is written around a trap this duplicate kept falling
+  // into — the shell is client-rendered, so a Tab sent on load lands in an
+  // empty document. One careful assertion beats two, and the trigger lives in
+  // the top bar, after the skip control in DOM order.
+
+  test('escape closes it and leaves the route alone', async ({ page }) => {
+    await mockGateway(page)
+    await page.goto('./#/upstreams')
+    // The shortcut is attached by an effect, so a keypress dispatched in the
+    // same tick as the navigation beats it there. A person pressing this has
+    // already seen the page.
+    await expect(page.getByRole('button', { name: 'Jump to' })).toBeVisible()
+    await page.keyboard.press('Control+k')
+    const dialog = page.getByRole('dialog', { name: 'Jump to' })
+    await expect(dialog).toBeVisible()
+    await page.keyboard.press('Escape')
+    await expect(dialog).toHaveCount(0)
+    await expect(page).toHaveURL(/#\/upstreams$/)
+  })
+
+  test('says which haystack it searched when nothing matches', async ({ page }) => {
+    await mockGateway(page)
+    await page.goto('./')
+    await expect(page.getByRole('button', { name: 'Jump to' })).toBeVisible()
+    await page.keyboard.press('Control+k')
+    await page.getByRole('combobox', { name: 'Search' }).fill('zzzz')
+    await expect(page.getByText('Routes, upstream ids and catalog names')).toBeVisible()
+  })
+
+  test('hints use glyphs the shipped font actually carries', async ({ page }) => {
+    // The subset is latin plus U+2190-2193. A command glyph or a return arrow
+    // would be drawn by a fallback face, which is the defect docs/design.md
+    // records about the arrows themselves.
+    await mockGateway(page)
+    await page.goto('./')
+    await expect(page.getByRole('button', { name: 'Jump to' })).toBeVisible()
+    await page.keyboard.press('Control+k')
+    const foot = page.locator('.pal-foot')
+    await expect(foot).toHaveText(/↑ ↓ to move, Enter to open, Esc to close/)
+    const text = (await foot.textContent()) ?? ''
+    for (const banned of ['\u2318', '\u21b5', '\u2325']) {
+      expect(text).not.toContain(banned)
+    }
+  })
+})
