@@ -19,12 +19,13 @@ import { federation, mockGateway, type Upstream } from './gateway'
 
 const TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa']
 
-async function scan(page: Page) {
-  // Let motion settle first. The banner fades in over 180ms, and axe scanning
-  // mid-fade measures a composited colour — it reported #bf3c5d on the Down
-  // banner, which is #FF4C79 part-way through its own entrance, not a real
-  // contrast failure. Infinite animations (the freshness dot's pulse) never
-  // finish, so they are filtered out rather than waited on forever.
+/**
+ * Wait out every finite animation currently running.
+ *
+ * Infinite ones (the freshness dot's pulse) never finish, so they are filtered
+ * out rather than waited on forever.
+ */
+async function settle(page: Page) {
   await page.evaluate(() =>
     Promise.all(
       document
@@ -33,6 +34,26 @@ async function scan(page: Page) {
         .map((a) => a.finished.catch(() => undefined)),
     ),
   )
+}
+
+async function scan(page: Page) {
+  // Let motion settle first. The banner fades in over 180ms, and axe scanning
+  // mid-fade measures a composited colour — it reported #bf3c5d on the Down
+  // banner, which is #FF4C79 part-way through its own entrance, not a real
+  // contrast failure.
+  await settle(page)
+
+  // Then again, because settling once is not enough for anything that mounts
+  // with the data rather than with the route. The routes are scanned as soon
+  // as <main> is visible, which is before the federation snapshot lands, so
+  // Overview's attention banner begins its entrance *after* the first wait has
+  // already resolved. Two frames is enough for that render to commit and its
+  // animation to be registered; the second wait then covers it.
+  await page.evaluate(
+    () => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r))),
+  )
+  await settle(page)
+
   return new AxeBuilder({ page }).withTags(TAGS).analyze()
 }
 
@@ -118,6 +139,16 @@ test.describe('accessibility', () => {
     await page.keyboard.press('Tab')
     await expect(page.getByRole('button', { name: 'Skip to content' })).toBeFocused()
 
+    const { violations } = await scan(page)
+    expect(violations, report(violations)).toEqual([])
+  })
+
+  test('the jump-to palette, open', async ({ page }) => {
+    await mockGateway(page)
+    await page.goto('./')
+    await expect(page.getByRole('button', { name: 'Jump to' })).toBeVisible()
+    await page.keyboard.press('Control+k')
+    await expect(page.getByRole('dialog', { name: 'Jump to' })).toBeVisible()
     const { violations } = await scan(page)
     expect(violations, report(violations)).toEqual([])
   })

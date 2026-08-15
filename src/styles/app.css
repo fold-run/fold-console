@@ -523,3 +523,80 @@ button:disabled { opacity: .45; cursor: default; }
 }
 @keyframes rise { from { opacity: 0; transform: translateY(8px); } }
 .toast.bad { border-color: var(--down); color: var(--down); }
+
+/* ---------- jump-to palette ----------
+
+   A native <dialog>: the top layer, the backdrop, the focus trap and Escape
+   come from the element rather than from code that has to remember them.
+
+   The hints in the footer are words and the two arrows the shipped subset
+   actually carries (U+2191/2193). A command glyph or a return arrow would be
+   drawn by whatever the machine fell back to, which is the same defect the
+   arrows themselves used to have before the range was widened. */
+
+.palette {
+  width: min(34rem, calc(100vw - 2rem));
+  max-width: none;
+  margin: 12vh auto auto;
+  padding: 0;
+  border: 1px solid var(--line-hi);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--fg);
+  overflow: hidden;
+}
+
+.palette::backdrop { background: rgb(0 0 0 / .55); }
+
+.pal-input { border-bottom: 1px solid var(--line); }
+
+.pal-input input {
+  width: 100%;
+  height: 2.75rem;
+  padding: 0 .85rem;
+  border: 0;
+  background: none;
+  color: var(--fg);
+  font: inherit;
+  outline: 0;
+}
+
+.pal-list {
+  max-height: 44vh;
+  overflow-y: auto;
+  margin: 0;
+  padding: .35rem;
+  list-style: none;
+}
+
+.pal-group {
+  margin: .5rem .5rem .2rem;
+  font: 600 .7rem/1.4 var(--mono);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--muted);
+}
+
+.pal-item {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .4rem .5rem;
+  border-radius: var(--radius);
+  cursor: pointer;
+}
+
+.pal-item[aria-selected='true'] { background: var(--card-hi); }
+
+.pal-label { font-family: var(--mono); font-size: .8rem; }
+.pal-hint { margin-left: auto; color: var(--muted); font-size: .75rem; }
+
+.pal-empty { margin: 0; padding: 1.25rem .85rem; color: var(--muted); font-size: .85rem; }
+
+.pal-foot {
+  margin: 0;
+  padding: .5rem .85rem;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: .75rem;
+}
