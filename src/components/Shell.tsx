@@ -9,6 +9,9 @@ import { Link, useRouterState } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import type { ComponentChildren } from 'preact'
 import { Wordmark } from './Wordmark'
+import { Palette } from './Palette'
+import { useMcp } from './McpProvider'
+import type { FederationState } from '@/lib/federation'
 import { FreshnessIndicator } from './Freshness'
 import { useSession, setToken, clearToken } from '@/lib/session'
 import { displayVersion } from '@/lib/version'
@@ -27,6 +30,8 @@ const NAV: NavItem[] = [
 ]
 
 interface Props {
+  /** The snapshot, for the palette's upstream entries. */
+  federation: FederationState | undefined
   version: string | undefined
   authRequired: boolean | undefined
   hint: AuthHint | null
@@ -41,6 +46,7 @@ interface Props {
 }
 
 export function Shell({
+  federation,
   version,
   authRequired,
   hint,
@@ -53,7 +59,23 @@ export function Shell({
   children,
 }: Props) {
   const session = useSession()
+  const mcp = useMcp()
+  const [palette, setPalette] = useState(false)
   const [draft, setDraft] = useState('')
+
+  // Owned here rather than in the dialog, so the shortcut works before it has
+  // ever been opened. Ctrl as well as Meta: an operator on Linux is the
+  // common case for a self-hosted gateway, not the exception.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setPalette((open) => !open)
+      }
+    }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [])
   const pathname = useRouterState({ select: (s) => s.location.pathname })
   const main = useRef<HTMLElement>(null)
 
@@ -85,6 +107,10 @@ export function Shell({
 
         <div class="auth">
           <FreshnessIndicator updatedAt={updatedAt} fetching={refreshing} failed={failed} />
+
+          <button type="button" onClick={() => setPalette(true)} aria-keyshortcuts="Meta+K Control+K">
+            Jump to
+          </button>
 
           {hint?.oauth && !signedIn ? (
             <button type="button" onClick={onSignIn}>
@@ -153,6 +179,14 @@ export function Shell({
           {children}
         </main>
       </div>
+
+      {palette ? (
+        <Palette
+          state={federation}
+          catalog={mcp.catalog}
+          onClose={() => setPalette(false)}
+        />
+      ) : null}
 
       <RouteAnnouncer section={section} />
 

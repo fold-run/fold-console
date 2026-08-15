@@ -9,6 +9,7 @@
 // tracing, or discovery, this page is short; on a fully configured one it is
 // long. Neither state shows a row of em dashes.
 import { createRoute, Link } from '@tanstack/react-router'
+import { Banner } from '@/components/Banner'
 import { Card, CardGroup } from '@/components/Card'
 import { PageHeader } from '@/components/PageHeader'
 import { CopyButton } from '@/components/CopyButton'
@@ -17,6 +18,7 @@ import { DocsLink } from '@/components/DocsLink'
 import { SkeletonCards } from '@/components/Skeleton'
 import { rootRoute, useFederation } from './root'
 import { supports } from '@/lib/version'
+import type { FederationState } from '@/lib/federation'
 import { interval, orEmpty, timestamp } from '@/lib/format'
 
 function Overview() {
@@ -53,6 +55,8 @@ function Overview() {
         lede="The gateway's own view of its configuration and federation."
         actions={<DocsLink topic="configuration" version={state.version}>Configuration</DocsLink>}
       />
+
+      <Attention state={state} />
 
       <CardGroup title="Gateway">
         <Card label="version" value={orEmpty(state.version)} />
@@ -185,6 +189,62 @@ function Overview() {
         </CardGroup>
       ) : null}
     </>
+  )
+}
+
+/**
+ * The one thing worth acting on, above the facts.
+ *
+ * Job one in PRODUCT.md is "is the federation healthy, and if not which
+ * upstream?", and this page answered it with a count buried in the Federation
+ * card, leaving the operator to reach /upstreams and work out the filter. The
+ * answer and the way to it are now the first thing on the page.
+ *
+ * It renders nothing when there is nothing to say. A banner that is always
+ * present is furniture, and an operator who has learned to skip it has learned
+ * to skip it on the day it matters.
+ *
+ * Half-open breakers are deliberately not counted: half-open is neither proven
+ * nor failed, and an upstream reporting no breaker at all is version skew
+ * rather than a state.
+ */
+function Attention({ state }: { state: FederationState }) {
+  const down = state.upstreams.filter((u) => !u.connected)
+  const tripped = state.upstreams.filter((u) => u.connected && u.breaker === 'open')
+
+  if (down.length === 0 && tripped.length === 0) return null
+
+  // One sentence, and the link resolves the larger half of it. Filtering by
+  // status is the filter the list actually has; there is none for breakers, so
+  // that case sends the operator to the unfiltered table rather than to a URL
+  // that would quietly drop what the sentence just named.
+  return (
+    <Banner tone={down.length ? 'bad' : 'warn'} announce={false}>
+      {down.length ? (
+        <>
+          {down.length === 1
+            ? `${down[0]?.id} is not connected`
+            : `${down.length} upstreams are not connected`}
+          {tripped.length
+            ? `, and ${tripped.length === 1 ? 'one more has' : `${tripped.length} more have`} an open breaker`
+            : ''}
+          .{' '}
+          <Link to="/upstreams" search={{ status: 'disconnected' }}>
+            Show them
+          </Link>
+        </>
+      ) : (
+        <>
+          {tripped.length === 1
+            ? `${tripped[0]?.id} is connected but its breaker is open`
+            : `${tripped.length} upstreams are connected but their breakers are open`}
+          {tripped.length === 1
+            ? '. Calls to it fail fast rather than being tried.'
+            : '. Calls to them fail fast rather than being tried.'}{' '}
+          <Link to="/upstreams">Show the federation</Link>
+        </>
+      )}
+    </Banner>
   )
 }
 
