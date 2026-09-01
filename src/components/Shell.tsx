@@ -8,7 +8,7 @@
 import { Link, useRouterState } from '@tanstack/react-router'
 import { useEffect, useRef, useState } from 'react'
 import type { ComponentChildren } from 'preact'
-import { Wordmark } from './Wordmark'
+import { Wordmark } from '@fold-run/ui/Wordmark'
 import { Palette } from './Palette'
 import { useMcp } from './McpProvider'
 import type { FederationState } from '@/lib/federation'

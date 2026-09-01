@@ -1,0 +1,26 @@
+{
+  "name": "@fold-run/ui",
+  "version": "0.1.0",
+  "private": false,
+  "license": "Apache-2.0",
+  "type": "module",
+  "description": "fold's design system: tokens, the self-hosted font subsets, and the wordmark. Shared by fold-console and fold-cloud's console.",
+  "exports": {
+    "./tokens.css": "./tokens.css",
+    "./Wordmark": "./src/Wordmark.tsx",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "tokens.css",
+    "src",
+    "public",
+    "fonts-src",
+    "scripts"
+  ],
+  "peerDependencies": {
+    "preact": ">=10"
+  },
+  "scripts": {
+    "fonts": "python3 scripts/subset-fonts.py"
+  }
+}
