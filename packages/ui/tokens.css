@@ -55,11 +55,26 @@
 
   --live: #D6FF00;          /* PROOF ONLY — status-up, focus ring */
   --down: #FF4C79;          /* status failures only */
-  /* Fold Line — meaningful diagram graphics only, never a border or a rule.
-     Trace would vanish at 1.5px on Backplane (1.3:1); this clears the 3:1 bar
-     for non-text at 4.0:1, which is why fold's system carries it as its own
-     token rather than reusing the hairline greys. */
-  --fold-line: #6E6E6E;
+  /* Fold Line — the faintest a *drawn relationship* may be. Meaningful diagram
+     graphics only, never a border or a rule.
+
+     WCAG 1.4.11 asks 3:1 of any graphic required to understand the content,
+     and in a topology drawing the edges ARE the content. Trace Bright is
+     1.72:1 on Backplane, right for a border and wrong for a line somebody has
+     to read; this clears the bar at 3.78:1, with headroom for a 1.5px stroke
+     that antialiases toward its background, while staying far below Static so
+     a connection nobody has made still recedes behind one that works.
+
+     The value is #707070 and not the #6E6E6E this console shipped before the
+     two token sets were merged. That one measured 3.67:1, not the 4.0:1 its
+     comment claimed — the arithmetic was wrong in the direction that matters,
+     and fold-cloud's copy had already been corrected without this one being
+     told. Both cleared 3:1, so nothing was failing; the number in the comment
+     was the thing that was false. axe cannot catch this: it does not evaluate
+     stroke contrast, which is how a green scan sits on top of a wrong claim.
+
+     fold-cloud's canvas calls this --wire; it aliases to this token. */
+  --fold-line: #707070;
 
   /* Actions are neutral. Signal fill / Backplane ink is 18.7:1. */
   --action: #FFFFFF;
