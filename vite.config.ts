@@ -85,7 +85,15 @@ const proxy = {
   '/health': GATEWAY,
 }
 
+// The font files are the shared package's, not this repo's. publicDir is how
+// they reach dist/fonts/ with their names untouched — the four filenames fold's
+// manifest pins. Pointing it at the package rather than copying the woff2s back
+// into this repo is the whole point of the package: one set of bytes, one
+// provenance record (packages/ui/fonts-src/), two consoles.
+const PUBLIC_DIR = fileURLToPath(new URL('./packages/ui/public', import.meta.url))
+
 export default defineConfig(({ command }) => ({
+  publicDir: PUBLIC_DIR,
   // Build: relative, so /console/ and /any-proxy-prefix/console/ both resolve.
   // Dev/preview: the real mount point, so "../api/…" resolves to /api/… here
   // exactly as it will in a shipped binary.

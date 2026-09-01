@@ -1,0 +1,108 @@
+/* fold design tokens — from fold.run's DESIGN.md / DESIGN.json, 2026-08-10
+   revision. Dark-only by design: the brand has no per-origin theming.
+
+   THIS FILE IS SHARED. It is the one definition of fold's design system, and
+   it is consumed by both surfaces that render the product:
+
+     - fold-run/fold-console  (this repo) — the OSS gateway's /console page
+     - fold-run/fold-cloud    services/console — the hosted control plane
+
+   It was two definitions until they drifted, which is the argument for the
+   package: the same system was maintained twice, and the copies disagreed on
+   the one token where the number actually matters (see --fold-line below).
+   A change here reaches both consoles, so it is a change to the product's
+   appearance and not to one page's stylesheet.
+
+   Two rules from that revision drive everything below:
+     1. Live is a proof signal, not a colour scheme. It is licensed to
+        status-up, the active route in a topology drawing, and the focus ring.
+        Never a button, never a chip, never a border.
+     2. Actions run on the neutral ramp — an Action fill (Signal white) with
+        Backplane ink is the brightest element on the page and needs no hue.
+   One radius: 2px, on every surface including buttons. */
+
+/* Four static subsets, one per family per weight, generated from the variable
+   sources in fonts-src/ by scripts/subset-fonts.py, both in this package.
+
+   They were four files before too, but the -400 and -600 of each family were
+   byte-identical: both were the variable font with its wght axis intact and a
+   default of 400. A face declared `font-weight: 600` whose file carries no 600
+   instance renders the outlines it does have, so nothing here was ever
+   actually bold — and it cost twice. Instancing drops the variation tables, so
+   two real weights now cost less than half of what one duplicated variable
+   font did.
+
+   The fonts live in this package's public/ rather than being imported as modules, and the
+   URLs are root-absolute so Vite treats them as public assets and applies
+   `base` (./) without touching the names. fold's manifest pins these four
+   filenames exactly, and a module import would let the bundler rename them —
+   or, being content-addressed, silently deduplicate any two that ever became
+   identical again, leaving fold's sync looking for files that were never
+   emitted. CI asserts all four differ. */
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/IBMPlexSans-400-latin.woff2) format('woff2'); }
+@font-face { font-family: 'IBM Plex Sans'; font-style: normal; font-weight: 600; font-display: swap; src: url(/fonts/IBMPlexSans-600-latin.woff2) format('woff2'); }
+@font-face { font-family: 'Geist Mono'; font-style: normal; font-weight: 400; font-display: swap; src: url(/fonts/GeistMono-400-latin.woff2) format('woff2'); }
+@font-face { font-family: 'Geist Mono'; font-style: normal; font-weight: 600; font-display: swap; src: url(/fonts/GeistMono-600-latin.woff2) format('woff2'); }
+:root {
+  --bg: #121212;            /* Backplane — page ground */
+  --card: #1A1A1A;          /* Rack — panels, code */
+  --card-hi: #212121;       /* Rack, lifted — hover step */
+  --line: #2B2B2B;          /* Trace — hairlines */
+  --line-hi: #3D3D3D;       /* Trace Bright — hover borders, secondary edge */
+  --fg: #FFFFFF;            /* Signal — 18.7:1 */
+  --muted: #BCBCBC;         /* Static — muted text (9.9:1) */
+  --carrier: #E0E0E0;       /* links, labels (14.2:1) */
+
+  --live: #D6FF00;          /* PROOF ONLY — status-up, focus ring */
+  --down: #FF4C79;          /* status failures only */
+  /* Fold Line — the faintest a *drawn relationship* may be. Meaningful diagram
+     graphics only, never a border or a rule.
+
+     WCAG 1.4.11 asks 3:1 of any graphic required to understand the content,
+     and in a topology drawing the edges ARE the content. Trace Bright is
+     1.72:1 on Backplane, right for a border and wrong for a line somebody has
+     to read; this clears the bar at 3.78:1, with headroom for a 1.5px stroke
+     that antialiases toward its background, while staying far below Static so
+     a connection nobody has made still recedes behind one that works.
+
+     The value is #707070 and not the #6E6E6E this console shipped before the
+     two token sets were merged. That one measured 3.67:1, not the 4.0:1 its
+     comment claimed — the arithmetic was wrong in the direction that matters,
+     and fold-cloud's copy had already been corrected without this one being
+     told. Both cleared 3:1, so nothing was failing; the number in the comment
+     was the thing that was false. axe cannot catch this: it does not evaluate
+     stroke contrast, which is how a green scan sits on top of a wrong claim.
+
+     fold-cloud's canvas calls this --wire; it aliases to this token. */
+  --fold-line: #707070;
+
+  /* Actions are neutral. Signal fill / Backplane ink is 18.7:1. */
+  --action: #FFFFFF;
+  --action-ink: #121212;
+  --action-hover: #D4D4D4;
+
+  --radius: 2px;            /* machined — one radius, every surface */
+  /* The marketing surfaces set controls at 44px. A console is a denser class
+     of surface: this shell stacks a token field, a filter row and a picker
+     above a table, and 44px on each would push the federation below the fold
+     on a laptop. Radius, ramp and type stay identical. */
+  --control-h: 34px;
+  --page: 84rem;
+
+  --sans: 'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+  --mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /* Motion is state, never decoration, so the vocabulary is deliberately
+     small: one duration for a colour change, one for something arriving, and
+     a single exponential ease. No bounce; an instrument does not overshoot. */
+  --ease: cubic-bezier(0.25, 1, 0.5, 1);   /* ease-out-quart */
+  --dur-tint: 120ms;
+  --dur-move: 180ms;
+
+  /* Named, so nobody reaches for 9999. */
+  --z-sticky: 10;
+  --z-toast: 40;
+  --z-skip: 60;
+
+  color-scheme: dark;
+}

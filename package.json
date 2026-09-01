@@ -9,13 +9,14 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint src tests vite.config.ts playwright.config.ts playwright.contract.config.ts",
+    "lint": "eslint src tests packages vite.config.ts playwright.config.ts playwright.contract.config.ts",
     "lint:fix": "eslint --fix src vite.config.ts",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
     "test:contract": "playwright test --config playwright.contract.config.ts"
   },
   "dependencies": {
+    "@fold-run/ui": "workspace:*",
     "@tanstack/react-query": "^5.90.2",
     "@tanstack/react-router": "^1.132.0",
     "preact": "^10.27.2"

@@ -1,0 +1,6 @@
+# The console app is the workspace root; packages/ holds what it shares with
+# fold-cloud's console. Consumers outside this repo resolve packages/ui through
+# pnpm's git-dependency path syntax rather than a registry — see
+# packages/ui/README.md.
+packages:
+  - 'packages/*'

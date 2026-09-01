@@ -19,7 +19,7 @@
 //
 // Everything else — the per-upstream detail — stays in the table, which is why
 // each node here is a link into the detail route rather than a tooltip.
-import { WORDMARK_PATH, wordmarkTransform } from './Wordmark'
+import { WORDMARK_PATH, wordmarkTransform } from '@fold-run/ui/Wordmark'
 import type { FederationState, UpstreamHealth } from '@/lib/federation'
 import { latency } from '@/lib/format'
 
